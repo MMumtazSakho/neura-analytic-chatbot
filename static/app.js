@@ -64,6 +64,35 @@ let dbPageLimit = 25;
 let dbTotalRows = 0;
 const assistantBuffers = new Map();
 const toolElements = new Map();
+const runningTools = new Set();
+let responseLoaderEl = null;
+let responseViewActive = false;
+
+function hideResponseLoader() {
+  if (responseLoaderEl) responseLoaderEl.remove();
+  responseLoaderEl = null;
+}
+
+function showResponseLoader() {
+  // Tool steps already display their own execution state.
+  if (!responseViewActive || runningTools.size > 0 || responseLoaderEl) return;
+  const loader = document.createElement("div");
+  loader.className = "turn-item response-loader";
+  loader.setAttribute("role", "status");
+
+  const dots = document.createElement("span");
+  dots.className = "response-loader-dots";
+  dots.setAttribute("aria-hidden", "true");
+  for (let i = 0; i < 3; i += 1) {
+    dots.appendChild(document.createElement("span"));
+  }
+  const label = document.createElement("span");
+  label.textContent = "Menunggu respons...";
+  loader.append(dots, label);
+  responseLoaderEl = loader;
+  chatLogEl.appendChild(loader);
+  followLatest();
+}
 
 function setStatus(label, state = "idle") {
   if (statusTextEl) statusTextEl.textContent = label;
@@ -438,6 +467,8 @@ function appendErrorBanner(message) {
 }
 
 function clearChatDom() {
+  responseViewActive = false;
+  hideResponseLoader();
   assistantBuffers.forEach((state) => {
     if (state.renderRaf) cancelAnimationFrame(state.renderRaf);
   });
@@ -684,21 +715,31 @@ function handleStreamEvent(ev) {
       }
       break;
     case "tool_start":
+      runningTools.add(ev.tool_id);
+      hideResponseLoader();
       appendToolStep(ev);
       break;
     case "tool_result":
+      runningTools.delete(ev.tool_id);
       updateToolStepResult(ev);
+      showResponseLoader();
       break;
     case "message_delta":
+      if (ev.text) hideResponseLoader();
       appendAssistantDelta(ev);
       break;
     case "message_end":
       finishAssistantMessage(ev.message_id);
       break;
     case "error":
+      responseViewActive = false;
+      hideResponseLoader();
       appendErrorBanner(ev.message || "Terjadi kesalahan saat memproses permintaan.");
       break;
     case "done":
+      responseViewActive = false;
+      runningTools.clear();
+      hideResponseLoader();
       setStatus("Siap", "idle");
       loadSessionsList();
       break;
@@ -708,6 +749,7 @@ function handleStreamEvent(ev) {
 }
 
 async function sendChatMessage(text) {
+  if (sendBtnEl.disabled) return;
   const attachedCopy = [...pendingAttachments];
   const attachmentNotes = attachedCopy.map((a) => a.system_note);
   pendingAttachments = [];
@@ -721,6 +763,9 @@ async function sendChatMessage(text) {
   setStatus("Menganalisis...", "busy");
   sendBtnEl.disabled = true;
   messageInputEl.disabled = true;
+  responseViewActive = true;
+  runningTools.clear();
+  showResponseLoader();
 
   try {
     const resp = await fetch("/api/chat/stream", {
@@ -740,13 +785,17 @@ async function sendChatMessage(text) {
 
     await consumeSseStream(resp);
   } catch (err) {
+    hideResponseLoader();
     setStatus("Error", "error");
     appendErrorBanner(err.message || "Gagal terhubung ke server.");
   } finally {
+    responseViewActive = false;
+    runningTools.clear();
+    hideResponseLoader();
     sendBtnEl.disabled = false;
     messageInputEl.disabled = false;
     messageInputEl.focus();
-    if (statusIndicatorEl.dataset.state === "busy") {
+    if (statusIndicatorEl?.dataset.state === "busy") {
       setStatus("Siap", "idle");
     }
   }
