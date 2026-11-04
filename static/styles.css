@@ -45,8 +45,9 @@ html, body {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 256px 1fr;
+  grid-template-columns: 256px minmax(0, 1fr);
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -58,6 +59,13 @@ html, body {
   flex-direction: column;
   padding: 14px 12px;
   overflow: hidden;
+  min-height: 0;
+}
+
+.mobile-menu-btn,
+.sidebar-close-btn,
+.sidebar-backdrop {
+  display: none;
 }
 
 .sidebar-header {
@@ -152,6 +160,7 @@ html, body {
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
+  min-width: 0;
 }
 
 .session-delete-btn {
@@ -225,7 +234,9 @@ html, body {
 .main-pane {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
   overflow: hidden;
   background: var(--bg);
   position: relative;
@@ -280,6 +291,7 @@ html, body {
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 60%;
+  min-width: 0;
 }
 
 .topbar-actions {
@@ -335,6 +347,8 @@ html, body {
 /* ================= Chat Log ================= */
 .chat-log {
   flex: 1;
+  min-height: 0;
+  min-width: 0;
   overflow-y: auto;
   overflow-anchor: none;
   padding: 28px 24px 36px;
@@ -669,6 +683,7 @@ html, body {
 .composer-area {
   padding: 10px 24px 18px;
   background: var(--bg);
+  flex-shrink: 0;
 }
 
 .composer-card {
@@ -693,6 +708,8 @@ html, body {
   padding: 4px 4px 8px;
   border-bottom: 1px solid var(--border);
   margin-bottom: 6px;
+  max-height: 24vh;
+  overflow-y: auto;
 }
 
 .attachment-chip {
@@ -704,6 +721,14 @@ html, body {
   border-radius: 6px;
   padding: 3px 8px;
   font-size: 12px;
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.attachment-chip > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .attachment-chip-meta {
@@ -745,6 +770,7 @@ html, body {
 
 #message-input {
   flex: 1;
+  min-width: 0;
   border: none;
   outline: none;
   resize: none;
@@ -802,6 +828,8 @@ html, body {
   z-index: 101;
   width: min(560px, 92vw);
   height: 100vh;
+  height: 100dvh;
+  min-width: 0;
   background: #ffffff;
   border-left: 1px solid var(--border);
   display: flex;
@@ -854,6 +882,8 @@ html, body {
   padding: 18px 22px;
   overflow-y: auto;
   flex: 1;
+  min-height: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -890,6 +920,8 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 1px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .dropzone-primary {
@@ -910,6 +942,7 @@ html, body {
 
 .kb-input {
   flex: 1;
+  min-width: 0;
   font-family: inherit;
   font-size: 13px;
   padding: 7px 10px;
@@ -1412,6 +1445,7 @@ html, body {
   border: 1px solid var(--border);
   border-radius: 7px;
   overflow: auto;
+  max-width: 100%;
   max-height: 52vh;
   background: #ffffff;
 }
@@ -1485,4 +1519,283 @@ html, body {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-secondary);
+}
+
+/* ================= Responsive layouts ================= */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .app-shell {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+
+  .topbar,
+  .chat-log {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .topbar-actions {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 767px) {
+  .app-shell {
+    display: block;
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 91;
+    width: min(300px, calc(100vw - 48px));
+    height: 100vh;
+    height: 100dvh;
+    padding: max(14px, env(safe-area-inset-top)) 12px max(14px, env(safe-area-inset-bottom));
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform 0.2s ease, visibility 0s linear 0.2s;
+    box-shadow: 8px 0 28px rgba(0, 0, 0, 0.12);
+  }
+
+  .sidebar.is-open {
+    transform: translateX(0);
+    visibility: visible;
+    transition: transform 0.2s ease;
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: rgba(17, 24, 39, 0.4);
+    cursor: pointer;
+  }
+
+  .mobile-menu-btn,
+  .sidebar-close-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .mobile-menu-btn:hover,
+  .sidebar-close-btn:hover {
+    background: var(--bg-muted);
+  }
+
+  .sidebar-header {
+    gap: 4px;
+    padding: 0 0 10px;
+  }
+
+  .brand {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .new-chat-btn,
+  .kb-nav-btn,
+  .session-item {
+    min-height: 44px;
+  }
+
+  .session-delete-btn {
+    opacity: 1;
+    min-width: 36px;
+    min-height: 36px;
+    font-size: 20px;
+  }
+
+  .main-pane {
+    width: 100%;
+    height: 100%;
+  }
+
+  .topbar {
+    height: auto;
+    min-height: calc(56px + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) max(12px, env(safe-area-inset-right)) 0 max(8px, env(safe-area-inset-left));
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  .topbar-title {
+    flex: 1;
+    max-width: none;
+  }
+
+  .topbar-actions {
+    display: none;
+  }
+
+  .chat-log {
+    padding: 20px max(16px, env(safe-area-inset-right)) 24px max(16px, env(safe-area-inset-left));
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .empty-state {
+    margin-top: 3vh;
+  }
+
+  .empty-title {
+    font-size: 19px;
+  }
+
+  .starter-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .starter-card {
+    min-height: 64px;
+    padding: 10px 12px;
+  }
+
+  .user-bubble {
+    max-width: 92%;
+  }
+
+  .assistant-block {
+    overflow-wrap: anywhere;
+  }
+
+  .assistant-block table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tool-step {
+    min-width: 0;
+  }
+
+  .tool-step summary {
+    min-height: 44px;
+  }
+
+  .composer-area {
+    padding: 8px max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  }
+
+  .composer-card {
+    padding: 4px 6px;
+  }
+
+  .composer-row {
+    gap: 4px;
+  }
+
+  .icon-action-btn,
+  .send-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  #message-input,
+  .kb-input {
+    font-size: 16px;
+  }
+
+  .jump-latest-btn {
+    bottom: calc(84px + env(safe-area-inset-bottom));
+    white-space: nowrap;
+  }
+
+  .kb-panel,
+  .db-panel {
+    width: 100%;
+    max-width: 100%;
+    border-left: 0;
+  }
+
+  .kb-header {
+    padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 14px max(16px, env(safe-area-inset-left));
+    align-items: center;
+  }
+
+  .kb-content {
+    padding: 16px max(16px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .kb-close-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  .kb-list-header,
+  .db-pagination-bar,
+  .db-pagination-controls {
+    flex-wrap: wrap;
+  }
+
+  .db-page-btn,
+  .db-page-size-select,
+  .db-table-tab,
+  .db-switch-btn {
+    min-height: 40px;
+  }
+
+  .db-table-scroll {
+    max-height: 55vh;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 480px) {
+  .kb-form-controls {
+    flex-direction: column;
+  }
+
+  .kb-input,
+  .kb-upload-btn {
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .db-view-switch {
+    display: flex;
+    width: 100%;
+  }
+
+  .db-switch-btn {
+    flex: 1 1 0;
+  }
+
+  .db-pagination-controls {
+    width: 100%;
+    gap: 6px;
+  }
+}
+
+@media (hover: none) {
+  .session-delete-btn {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .sidebar.is-open {
+    transition: none;
+  }
 }

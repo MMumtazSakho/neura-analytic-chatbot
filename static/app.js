@@ -13,6 +13,53 @@ const sendBtnEl = document.querySelector("#send-btn");
 const chatFileInputEl = document.querySelector("#chat-file-input");
 const attachmentTrayEl = document.querySelector("#attachment-tray");
 const jumpLatestBtn = document.querySelector("#jump-latest-btn");
+const sidebarEl = document.querySelector("#sidebar");
+const mainPaneEl = document.querySelector(".main-pane");
+const sidebarOpenBtn = document.querySelector("#open-sidebar-btn");
+const sidebarCloseBtn = document.querySelector("#close-sidebar-btn");
+const sidebarBackdrop = document.querySelector("#sidebar-backdrop");
+const mobileSidebarQuery = window.matchMedia("(max-width: 767px)");
+let sidebarIsOpen = false;
+
+function setSidebarOpen(open, { restoreFocus = false } = {}) {
+  const wasOpen = sidebarIsOpen;
+  sidebarIsOpen = Boolean(open && mobileSidebarQuery.matches);
+  sidebarEl.classList.toggle("is-open", sidebarIsOpen);
+  sidebarBackdrop.hidden = !sidebarIsOpen;
+  sidebarOpenBtn.setAttribute("aria-expanded", String(sidebarIsOpen));
+  const hiddenOnMobile = mobileSidebarQuery.matches && !sidebarIsOpen;
+  sidebarEl.inert = hiddenOnMobile;
+  sidebarEl.setAttribute("aria-hidden", String(hiddenOnMobile));
+  if (sidebarIsOpen && !wasOpen) sidebarCloseBtn.focus();
+  mainPaneEl.inert = sidebarIsOpen;
+  if (wasOpen && !sidebarIsOpen && restoreFocus && mobileSidebarQuery.matches) {
+    sidebarOpenBtn.focus();
+  }
+}
+
+let panelReturnFocus = null;
+
+function rememberPanelTrigger() {
+  const active = document.activeElement;
+  panelReturnFocus = mobileSidebarQuery.matches && sidebarEl.contains(active)
+    ? sidebarOpenBtn
+    : active;
+}
+
+function restorePanelTrigger() {
+  if (panelReturnFocus && panelReturnFocus.isConnected) panelReturnFocus.focus();
+  panelReturnFocus = null;
+}
+
+sidebarOpenBtn.addEventListener("click", () => setSidebarOpen(true));
+sidebarCloseBtn.addEventListener("click", () => setSidebarOpen(false, { restoreFocus: true }));
+sidebarBackdrop.addEventListener("click", () => setSidebarOpen(false, { restoreFocus: true }));
+if (mobileSidebarQuery.addEventListener) {
+  mobileSidebarQuery.addEventListener("change", () => setSidebarOpen(false));
+} else {
+  mobileSidebarQuery.addListener(() => setSidebarOpen(false));
+}
+setSidebarOpen(false);
 
 const openKbBtn = document.querySelector("#open-kb-btn");
 const topbarKbBtn = document.querySelector("#topbar-kb-btn");
@@ -529,6 +576,7 @@ async function loadSessionsList() {
 }
 
 async function selectSession(sessionId, title = "Percakapan") {
+  setSidebarOpen(false, { restoreFocus: true });
   currentSessionId = sessionId;
   localStorage.setItem(SESSION_STORAGE_KEY, sessionId);
   activeSessionTitleEl.textContent = title;
@@ -563,6 +611,7 @@ async function selectSession(sessionId, title = "Percakapan") {
 }
 
 async function createNewChatSession() {
+  setSidebarOpen(false, { restoreFocus: true });
   try {
     const resp = await fetch("/api/sessions", { method: "POST" });
     if (!resp.ok) return;
@@ -928,10 +977,15 @@ async function refreshKbList() {
 }
 
 function toggleKbPanel(open) {
+  if (open) rememberPanelTrigger();
   if (open && dbOverlay) dbOverlay.hidden = true;
   kbOverlay.hidden = !open;
   if (open) {
+    closeKbBtn.focus();
+    setSidebarOpen(false);
     refreshKbList();
+  } else {
+    restorePanelTrigger();
   }
 }
 
@@ -1235,10 +1289,15 @@ async function refreshDatabasesList() {
 
 function toggleDbPanel(open) {
   if (!dbOverlay) return;
+  if (open) rememberPanelTrigger();
   if (open && kbOverlay) kbOverlay.hidden = true;
   dbOverlay.hidden = !open;
   if (open) {
+    closeDbBtn.focus();
+    setSidebarOpen(false);
     refreshDatabasesList();
+  } else {
+    restorePanelTrigger();
   }
 }
 
@@ -1279,6 +1338,7 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     if (kbOverlay && !kbOverlay.hidden) toggleKbPanel(false);
     if (dbOverlay && !dbOverlay.hidden) toggleDbPanel(false);
+    if (sidebarIsOpen) setSidebarOpen(false, { restoreFocus: true });
   }
 });
 
