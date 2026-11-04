@@ -12,6 +12,9 @@ __pycache__/
 *.pyc
 .env
 .DS_Store
+tests/
+postman/
+.postman/
 
 # Abaikan workspaces per-session dan file yang tidak relevan
 data/workspaces/

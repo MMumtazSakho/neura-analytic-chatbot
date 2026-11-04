@@ -77,15 +77,7 @@ RERANK_FINAL_TOP_K=6
 
 See [.env.example](.env.example) for settings. Restart the server after configuration changes. With reranking enabled, retrieval selects up to six results, including at most two images. Reranking failures retain vector-ranked text results.
 
-## Validation and Deployment
-
-Run the local tests:
-
-```bash
-python -m unittest discover -s tests -v
-```
-
-HTTP simulation tests require the optional Postman simulation described in [its configuration](postman/simulations/rerank/rerank.sim.yaml).
+## Deployment
 
 To deploy, review the project and region in [deploy_cloud_run.sh](deploy_cloud_run.sh), authenticate with Google Cloud, and run:
 

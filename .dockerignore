@@ -3,5 +3,8 @@ __pycache__/
 *.pyc
 .env
 .DS_Store
+tests/
+postman/
+.postman/
 data/workspaces/
 data/kb_files/_NTU_*
