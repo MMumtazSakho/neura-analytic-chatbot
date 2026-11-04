@@ -1,0 +1,94 @@
+DOKUMEN KEBIJAKAN OPERASIONAL: POL-FIN-2026-09
+PEDOMAN TEKNIS AUTO-RETRY, REKONSILIASI SETTLEMENT, DAN KOMPENSASI SLA MERCHANT
+================================================================================
+
+
+--- BAGIAN LAMPIRAN TEKNIS 01 ---
+BAB 1: KEBIJAKAN IDEMPOTENCY DAN AUTO-RETRY PADA GATEWAY PEMBAYARAN
+Setiap transaksi yang masuk melalui kanal API Partner, Virtual Account, Web, Mobile App, maupun QRIS wajib memiliki identitas unik `tx_id` dan `idempotency_key`. Apabila transaksi gagal dengan kode `ERR_GW_TIMEOUT_504`, sistem tidak diperbolehkan membuat transaksi baru tanpa melakukan pengecekan status (`status_inquiry`) ke bank mitra terlebih dahulu. Jeda waktu antar percobaan ulang (retry backoff) ditetapkan sebesar 2 detik pada percobaan pertama dan 5 detik pada percobaan kedua. Untuk kegagalan bisnis seperti `ERR_INSUFFICIENT_FUNDS`, `ERR_LIMIT_EXCEEDED`, dan `ERR_INVALID_OTP`, mekanisme auto-retry dilarang keras karena melanggar ketentuan kepatuhan jaringan perbankan dan meningkatkan biaya penalti API.
+Klausul Operasional Tambahan 1.1: Tim operasional wajib mendokumentasikan setiap anomali kanal, kategori merchant, dan distribusi kode error per bulan ke dalam repositori audit internal.
+Klausul Operasional Tambahan 1.2: Seluruh perubahan parameter timeout pada bank mitra (termasuk Bank Nusantara, Bank Mandiri Jaya, Bank Sentral Niaga, Bank Prima Digital, dan WalletPay Gateway) harus melewati uji beban (load testing) sebelum diterapkan pada trafik produksi kanal API Partner dan Virtual Account.
+
+
+--- BAGIAN LAMPIRAN TEKNIS 02 ---
+BAB 2: STANDAR WAKTU RESPONS (LATENCY) DAN PEMANTAUAN ANOMALI
+Dalam kondisi operasional normal, waktu pemrosesan transaksi (`response_time_ms`) berada pada kisaran 180 ms hingga 700 ms. Apabila rata-rata waktu respons pada suatu bank gateway melampaui 2.500 ms, sistem peringatan dini akan mengirimkan notifikasi ke kanal komunikasi L2 Payment Operations. Jika waktu respons mendekati 9.000 ms - 10.000 ms disertai lonjakan kode `ERR_GW_TIMEOUT_504`, hal tersebut mengindikasikan adanya pemutusan paksa oleh parameter read-timeout di sisi gateway atau antrean koneksi yang jenuh.
+Klausul Operasional Tambahan 2.1: Tim operasional wajib mendokumentasikan setiap anomali kanal, kategori merchant, dan distribusi kode error per bulan ke dalam repositori audit internal.
+Klausul Operasional Tambahan 2.2: Seluruh perubahan parameter timeout pada bank mitra (termasuk Bank Nusantara, Bank Mandiri Jaya, Bank Sentral Niaga, Bank Prima Digital, dan WalletPay Gateway) harus melewati uji beban (load testing) sebelum diterapkan pada trafik produksi kanal API Partner dan Virtual Account.
+
+
+--- BAGIAN LAMPIRAN TEKNIS 03 ---
+BAB 3: PROSEDUR REKONSILIASI DANA DAN PENANGANAN TRANSAKSI SUSPECT
+Rekonsiliasi dilakukan secara otomatis setiap hari pada pukul 06:00 WIB untuk seluruh transaksi hari sebelumnya (H+1). Transaksi yang tercatat FAILED karena `ERR_GW_TIMEOUT_504` maupun berstatus `PENDING` lebih dari 60 menit dikategorikan sebagai transaksi perlu verifikasi mutasi. Apabila dana terbukti masuk ke rekening penampungan (escrow) berdasarkan laporan settlement bank mitra, tim Finance Operations wajib melakukan pembaruan status atau pengembalian dana (refund) sesuai instruksi merchant maksimal dalam 48 jam.
+Klausul Operasional Tambahan 3.1: Tim operasional wajib mendokumentasikan setiap anomali kanal, kategori merchant, dan distribusi kode error per bulan ke dalam repositori audit internal.
+Klausul Operasional Tambahan 3.2: Seluruh perubahan parameter timeout pada bank mitra (termasuk Bank Nusantara, Bank Mandiri Jaya, Bank Sentral Niaga, Bank Prima Digital, dan WalletPay Gateway) harus melewati uji beban (load testing) sebelum diterapkan pada trafik produksi kanal API Partner dan Virtual Account.
+
+
+--- BAGIAN LAMPIRAN TEKNIS 04 ---
+BAB 4: KOMPENSASI SLA DAN KOMUNIKASI KEPADA MERCHANT ENTERPRISE
+Merchant tier Enterprise yang menggunakan kanal API Partner dan Virtual Account memiliki jaminan tingkat keberhasilan (Success Rate SLA) minimal 96,0% di luar kegagalan sisi nasabah (`ERR_INSUFFICIENT_FUNDS`). Apabila terjadi insiden infrastruktur pada salah satu bank gateway seperti insiden migrasi Bank Nusantara pada Oktober 2026, Account Manager wajib mengirimkan buletin status resmi beserta rencana pengalihan rute (traffic rerouting) kepada seluruh merchant terdampak.
+Klausul Operasional Tambahan 4.1: Tim operasional wajib mendokumentasikan setiap anomali kanal, kategori merchant, dan distribusi kode error per bulan ke dalam repositori audit internal.
+Klausul Operasional Tambahan 4.2: Seluruh perubahan parameter timeout pada bank mitra (termasuk Bank Nusantara, Bank Mandiri Jaya, Bank Sentral Niaga, Bank Prima Digital, dan WalletPay Gateway) harus melewati uji beban (load testing) sebelum diterapkan pada trafik produksi kanal API Partner dan Virtual Account.
+
+
+--- BAGIAN LAMPIRAN TEKNIS 05 ---
+BAB 1: KEBIJAKAN IDEMPOTENCY DAN AUTO-RETRY PADA GATEWAY PEMBAYARAN
+Setiap transaksi yang masuk melalui kanal API Partner, Virtual Account, Web, Mobile App, maupun QRIS wajib memiliki identitas unik `tx_id` dan `idempotency_key`. Apabila transaksi gagal dengan kode `ERR_GW_TIMEOUT_504`, sistem tidak diperbolehkan membuat transaksi baru tanpa melakukan pengecekan status (`status_inquiry`) ke bank mitra terlebih dahulu. Jeda waktu antar percobaan ulang (retry backoff) ditetapkan sebesar 2 detik pada percobaan pertama dan 5 detik pada percobaan kedua. Untuk kegagalan bisnis seperti `ERR_INSUFFICIENT_FUNDS`, `ERR_LIMIT_EXCEEDED`, dan `ERR_INVALID_OTP`, mekanisme auto-retry dilarang keras karena melanggar ketentuan kepatuhan jaringan perbankan dan meningkatkan biaya penalti API.
+Klausul Operasional Tambahan 5.1: Tim operasional wajib mendokumentasikan setiap anomali kanal, kategori merchant, dan distribusi kode error per bulan ke dalam repositori audit internal.
+Klausul Operasional Tambahan 5.2: Seluruh perubahan parameter timeout pada bank mitra (termasuk Bank Nusantara, Bank Mandiri Jaya, Bank Sentral Niaga, Bank Prima Digital, dan WalletPay Gateway) harus melewati uji beban (load testing) sebelum diterapkan pada trafik produksi kanal API Partner dan Virtual Account.
+
+
+--- BAGIAN LAMPIRAN TEKNIS 06 ---
+BAB 2: STANDAR WAKTU RESPONS (LATENCY) DAN PEMANTAUAN ANOMALI
+Dalam kondisi operasional normal, waktu pemrosesan transaksi (`response_time_ms`) berada pada kisaran 180 ms hingga 700 ms. Apabila rata-rata waktu respons pada suatu bank gateway melampaui 2.500 ms, sistem peringatan dini akan mengirimkan notifikasi ke kanal komunikasi L2 Payment Operations. Jika waktu respons mendekati 9.000 ms - 10.000 ms disertai lonjakan kode `ERR_GW_TIMEOUT_504`, hal tersebut mengindikasikan adanya pemutusan paksa oleh parameter read-timeout di sisi gateway atau antrean koneksi yang jenuh.
+Klausul Operasional Tambahan 6.1: Tim operasional wajib mendokumentasikan setiap anomali kanal, kategori merchant, dan distribusi kode error per bulan ke dalam repositori audit internal.
+Klausul Operasional Tambahan 6.2: Seluruh perubahan parameter timeout pada bank mitra (termasuk Bank Nusantara, Bank Mandiri Jaya, Bank Sentral Niaga, Bank Prima Digital, dan WalletPay Gateway) harus melewati uji beban (load testing) sebelum diterapkan pada trafik produksi kanal API Partner dan Virtual Account.
+
+
+--- BAGIAN LAMPIRAN TEKNIS 07 ---
+BAB 3: PROSEDUR REKONSILIASI DANA DAN PENANGANAN TRANSAKSI SUSPECT
+Rekonsiliasi dilakukan secara otomatis setiap hari pada pukul 06:00 WIB untuk seluruh transaksi hari sebelumnya (H+1). Transaksi yang tercatat FAILED karena `ERR_GW_TIMEOUT_504` maupun berstatus `PENDING` lebih dari 60 menit dikategorikan sebagai transaksi perlu verifikasi mutasi. Apabila dana terbukti masuk ke rekening penampungan (escrow) berdasarkan laporan settlement bank mitra, tim Finance Operations wajib melakukan pembaruan status atau pengembalian dana (refund) sesuai instruksi merchant maksimal dalam 48 jam.
+Klausul Operasional Tambahan 7.1: Tim operasional wajib mendokumentasikan setiap anomali kanal, kategori merchant, dan distribusi kode error per bulan ke dalam repositori audit internal.
+Klausul Operasional Tambahan 7.2: Seluruh perubahan parameter timeout pada bank mitra (termasuk Bank Nusantara, Bank Mandiri Jaya, Bank Sentral Niaga, Bank Prima Digital, dan WalletPay Gateway) harus melewati uji beban (load testing) sebelum diterapkan pada trafik produksi kanal API Partner dan Virtual Account.
+
+
+--- BAGIAN LAMPIRAN TEKNIS 08 ---
+BAB 4: KOMPENSASI SLA DAN KOMUNIKASI KEPADA MERCHANT ENTERPRISE
+Merchant tier Enterprise yang menggunakan kanal API Partner dan Virtual Account memiliki jaminan tingkat keberhasilan (Success Rate SLA) minimal 96,0% di luar kegagalan sisi nasabah (`ERR_INSUFFICIENT_FUNDS`). Apabila terjadi insiden infrastruktur pada salah satu bank gateway seperti insiden migrasi Bank Nusantara pada Oktober 2026, Account Manager wajib mengirimkan buletin status resmi beserta rencana pengalihan rute (traffic rerouting) kepada seluruh merchant terdampak.
+Klausul Operasional Tambahan 8.1: Tim operasional wajib mendokumentasikan setiap anomali kanal, kategori merchant, dan distribusi kode error per bulan ke dalam repositori audit internal.
+Klausul Operasional Tambahan 8.2: Seluruh perubahan parameter timeout pada bank mitra (termasuk Bank Nusantara, Bank Mandiri Jaya, Bank Sentral Niaga, Bank Prima Digital, dan WalletPay Gateway) harus melewati uji beban (load testing) sebelum diterapkan pada trafik produksi kanal API Partner dan Virtual Account.
+
+
+--- BAGIAN LAMPIRAN TEKNIS 09 ---
+BAB 1: KEBIJAKAN IDEMPOTENCY DAN AUTO-RETRY PADA GATEWAY PEMBAYARAN
+Setiap transaksi yang masuk melalui kanal API Partner, Virtual Account, Web, Mobile App, maupun QRIS wajib memiliki identitas unik `tx_id` dan `idempotency_key`. Apabila transaksi gagal dengan kode `ERR_GW_TIMEOUT_504`, sistem tidak diperbolehkan membuat transaksi baru tanpa melakukan pengecekan status (`status_inquiry`) ke bank mitra terlebih dahulu. Jeda waktu antar percobaan ulang (retry backoff) ditetapkan sebesar 2 detik pada percobaan pertama dan 5 detik pada percobaan kedua. Untuk kegagalan bisnis seperti `ERR_INSUFFICIENT_FUNDS`, `ERR_LIMIT_EXCEEDED`, dan `ERR_INVALID_OTP`, mekanisme auto-retry dilarang keras karena melanggar ketentuan kepatuhan jaringan perbankan dan meningkatkan biaya penalti API.
+Klausul Operasional Tambahan 9.1: Tim operasional wajib mendokumentasikan setiap anomali kanal, kategori merchant, dan distribusi kode error per bulan ke dalam repositori audit internal.
+Klausul Operasional Tambahan 9.2: Seluruh perubahan parameter timeout pada bank mitra (termasuk Bank Nusantara, Bank Mandiri Jaya, Bank Sentral Niaga, Bank Prima Digital, dan WalletPay Gateway) harus melewati uji beban (load testing) sebelum diterapkan pada trafik produksi kanal API Partner dan Virtual Account.
+
+
+--- BAGIAN LAMPIRAN TEKNIS 10 ---
+BAB 2: STANDAR WAKTU RESPONS (LATENCY) DAN PEMANTAUAN ANOMALI
+Dalam kondisi operasional normal, waktu pemrosesan transaksi (`response_time_ms`) berada pada kisaran 180 ms hingga 700 ms. Apabila rata-rata waktu respons pada suatu bank gateway melampaui 2.500 ms, sistem peringatan dini akan mengirimkan notifikasi ke kanal komunikasi L2 Payment Operations. Jika waktu respons mendekati 9.000 ms - 10.000 ms disertai lonjakan kode `ERR_GW_TIMEOUT_504`, hal tersebut mengindikasikan adanya pemutusan paksa oleh parameter read-timeout di sisi gateway atau antrean koneksi yang jenuh.
+Klausul Operasional Tambahan 10.1: Tim operasional wajib mendokumentasikan setiap anomali kanal, kategori merchant, dan distribusi kode error per bulan ke dalam repositori audit internal.
+Klausul Operasional Tambahan 10.2: Seluruh perubahan parameter timeout pada bank mitra (termasuk Bank Nusantara, Bank Mandiri Jaya, Bank Sentral Niaga, Bank Prima Digital, dan WalletPay Gateway) harus melewati uji beban (load testing) sebelum diterapkan pada trafik produksi kanal API Partner dan Virtual Account.
+
+
+--- BAGIAN LAMPIRAN TEKNIS 11 ---
+BAB 3: PROSEDUR REKONSILIASI DANA DAN PENANGANAN TRANSAKSI SUSPECT
+Rekonsiliasi dilakukan secara otomatis setiap hari pada pukul 06:00 WIB untuk seluruh transaksi hari sebelumnya (H+1). Transaksi yang tercatat FAILED karena `ERR_GW_TIMEOUT_504` maupun berstatus `PENDING` lebih dari 60 menit dikategorikan sebagai transaksi perlu verifikasi mutasi. Apabila dana terbukti masuk ke rekening penampungan (escrow) berdasarkan laporan settlement bank mitra, tim Finance Operations wajib melakukan pembaruan status atau pengembalian dana (refund) sesuai instruksi merchant maksimal dalam 48 jam.
+Klausul Operasional Tambahan 11.1: Tim operasional wajib mendokumentasikan setiap anomali kanal, kategori merchant, dan distribusi kode error per bulan ke dalam repositori audit internal.
+Klausul Operasional Tambahan 11.2: Seluruh perubahan parameter timeout pada bank mitra (termasuk Bank Nusantara, Bank Mandiri Jaya, Bank Sentral Niaga, Bank Prima Digital, dan WalletPay Gateway) harus melewati uji beban (load testing) sebelum diterapkan pada trafik produksi kanal API Partner dan Virtual Account.
+
+
+--- BAGIAN LAMPIRAN TEKNIS 12 ---
+BAB 4: KOMPENSASI SLA DAN KOMUNIKASI KEPADA MERCHANT ENTERPRISE
+Merchant tier Enterprise yang menggunakan kanal API Partner dan Virtual Account memiliki jaminan tingkat keberhasilan (Success Rate SLA) minimal 96,0% di luar kegagalan sisi nasabah (`ERR_INSUFFICIENT_FUNDS`). Apabila terjadi insiden infrastruktur pada salah satu bank gateway seperti insiden migrasi Bank Nusantara pada Oktober 2026, Account Manager wajib mengirimkan buletin status resmi beserta rencana pengalihan rute (traffic rerouting) kepada seluruh merchant terdampak.
+Klausul Operasional Tambahan 12.1: Tim operasional wajib mendokumentasikan setiap anomali kanal, kategori merchant, dan distribusi kode error per bulan ke dalam repositori audit internal.
+Klausul Operasional Tambahan 12.2: Seluruh perubahan parameter timeout pada bank mitra (termasuk Bank Nusantara, Bank Mandiri Jaya, Bank Sentral Niaga, Bank Prima Digital, dan WalletPay Gateway) harus melewati uji beban (load testing) sebelum diterapkan pada trafik produksi kanal API Partner dan Virtual Account.
+
+
+--- BAGIAN LAMPIRAN TEKNIS 13 ---
+BAB 1: KEBIJAKAN IDEMPOTENCY DAN AUTO-RETRY PADA GATEWAY PEMBAYARAN
+Setiap transaksi yang masuk melalui kanal API Partner, Virtual Account, Web, Mobile App, maupun QRIS wajib memiliki identitas unik `tx_id` dan `idempotency_key`. Apabila transaksi gagal dengan kode `ERR_GW_TIMEOUT_504`, sistem tidak diperbolehkan membuat transaksi baru tanpa melakukan pengecekan status (`status_inquiry`) ke bank mitra terlebih dahulu. Jeda waktu antar percobaan ulang (retry backoff) ditetapkan sebesar 2 detik pada percobaan pertama dan 5 detik pada percobaan kedua. Untuk kegagalan bisnis seperti `ERR_INSUFFICIENT_FUNDS`, `ERR_LIMIT_EXCEEDED`, dan `ERR_INVALID_OTP`, mekanisme auto-retry dilarang keras karena melanggar ketentuan kepatuhan jaringan perbankan dan meningkatkan biaya penalti API.
+Klausul Operasional Tambahan 13.1: Tim operasional wajib mendokumentasikan setiap anomali kanal, kategori merchant, dan distribusi kode error per bulan ke dalam repositori audit internal.
+Klausul Operasional Tambahan 13.2: Seluruh perubahan parameter timeout pada bank mitra (termasuk Bank Nusantara, Bank Mandiri Jaya, Bank Sentral Niaga, Bank Prima Digital, dan WalletPay Gateway) harus melewati uji beban (load testing) sebelum diterapkan pada trafik produksi kanal API Partner dan Virtual Account.

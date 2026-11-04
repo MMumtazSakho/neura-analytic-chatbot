@@ -1,0 +1,6 @@
+MEMO INTERNAL TIM OPERASIONAL — 25 OKTOBER 2026
+Perihal: Evaluasi Kampanye Promo Merchant F&B dan Pemantauan Gateway Oktober
+
+1. Program cashback QRIS pada merchant kategori F&B yang dimulai sejak September 2026 berhasil mendorong kenaikan volume transaksi F&B sebesar lebih dari 20% dibandingkan pertengahan tahun.
+2. Sebaliknya, kategori Travel mengalami penurunan musiman sejak Agustus 2026 setelah berakhirnya periode liburan sekolah.
+3. Tim Ops diminta memantau ketat koneksi Bank Nusantara pada kanal API Partner dan Virtual Account karena keluhan timeout sejak tanggal 12 Oktober 2026.

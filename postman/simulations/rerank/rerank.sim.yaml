@@ -1,0 +1,7 @@
+simulation: rerank
+routing: path
+mocks:
+  - name: openrouter-rerank
+    routeKey: openrouter
+    origin: openrouter.ai
+    path: postman/mocks/openrouter-rerank

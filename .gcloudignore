@@ -1,0 +1,19 @@
+.gcloudignore
+.git
+.gitignore
+
+# Jangan abaikan data/ karena dibutuhkan untuk pre-seeded SQLite & ChromaDB
+!data/
+!data/**
+
+# Abaikan environment lokal dan cache
+.venv/
+__pycache__/
+*.pyc
+.env
+.DS_Store
+
+# Abaikan workspaces per-session dan file yang tidak relevan
+data/workspaces/
+data/workspaces/**
+data/kb_files/_NTU_*

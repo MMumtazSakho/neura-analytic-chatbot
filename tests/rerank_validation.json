@@ -1,0 +1,348 @@
+{
+  "date": "2026-11-04",
+  "note": "Single run; query embedding reused per pair. Retrieval timings exclude query embedding, generation and view_image. No answer-quality benchmark.",
+  "results": [
+    {
+      "question": "Apa prosedur penanganan ERR_GW_TIMEOUT_504 sebelum retry?",
+      "enabled": false,
+      "status": "disabled",
+      "retrieval_ms": 139.5,
+      "rerank_ms": 0.0,
+      "hits": [
+        {
+          "doc_id": 1,
+          "chunk_id": 3,
+          "page": 2,
+          "type": "text",
+          "score": 0.7864,
+          "rerank_score": null,
+          "preview": "4) ERR_GW_TIMEOUT_504: Gateway pembayaran tidak menerima respons dari sistem core bank mitra\ndalam batas waktu baca (read timeout). Sering dipicu oleh lonjakan latensi jaringan, pe"
+        },
+        {
+          "doc_id": 1,
+          "chunk_id": 5,
+          "page": 3,
+          "type": "text",
+          "score": 0.7766,
+          "rerank_score": null,
+          "preview": "meriksa konfigurasi batas timeout koneksi (pastikan minimal 30 detik untuk endpoint sinkron) dan\nmengaktifkan rerouting ke jalur gateway cadangan.\n2) Prosedur untuk ERR_BANK_DOWN ("
+        },
+        {
+          "doc_id": 1,
+          "chunk_id": 4,
+          "page": 3,
+          "type": "text",
+          "score": 0.7624,
+          "rerank_score": null,
+          "preview": "SOP-OPS-04: Penanganan Transaksi Gagal | Halaman 3 dari 8\n4. PERBEDAAN PROSEDUR PENANGANAN UNTUK SETIAP JENIS KEGAGALAN\nSetiap kode error memiliki karakteristik risiko yang berbeda"
+        },
+        {
+          "doc_id": 1,
+          "chunk_id": 2,
+          "page": 2,
+          "type": "text",
+          "score": 0.7228,
+          "rerank_score": null,
+          "preview": "SOP-OPS-04: Penanganan Transaksi Gagal | Halaman 2 dari 8\n3. KLASIFIKASI PENYEBAB UMUM KEGAGALAN TRANSAKSI\nBerdasarkan analisis historis sistem payment gateway perusahaan, penyebab"
+        },
+        {
+          "doc_id": 1,
+          "chunk_id": 6,
+          "page": 4,
+          "type": "text",
+          "score": 0.7173,
+          "rerank_score": null,
+          "preview": "SOP-OPS-04: Penanganan Transaksi Gagal | Halaman 4 dari 8\n5. DIAGRAM ALUR PENANGANAN DAN ESKALASI TRANSAKSI GAGAL\nBerikut adalah diagram alur resmi pengambilan keputusan operasiona"
+        },
+        {
+          "doc_id": 1,
+          "chunk_id": 8,
+          "page": 6,
+          "type": "text",
+          "score": 0.717,
+          "rerank_score": null,
+          "preview": "SOP-OPS-04: Penanganan Transaksi Gagal | Halaman 6 dari 8\n7. MATRIKS ESKALASI INSIDEN OPERASIONAL\n| Level | Kondisi Pemicu | Target Respons | Tim Penanggung Jawab | Tindakan Utama "
+        }
+      ]
+    },
+    {
+      "question": "Apa prosedur penanganan ERR_GW_TIMEOUT_504 sebelum retry?",
+      "enabled": true,
+      "status": "applied",
+      "retrieval_ms": 946.6,
+      "rerank_ms": 942.0,
+      "hits": [
+        {
+          "doc_id": 1,
+          "chunk_id": 4,
+          "page": 3,
+          "type": "text",
+          "score": 0.7624,
+          "rerank_score": 1.0,
+          "preview": "SOP-OPS-04: Penanganan Transaksi Gagal | Halaman 3 dari 8\n4. PERBEDAAN PROSEDUR PENANGANAN UNTUK SETIAP JENIS KEGAGALAN\nSetiap kode error memiliki karakteristik risiko yang berbeda"
+        },
+        {
+          "doc_id": 1,
+          "chunk_id": 5,
+          "page": 3,
+          "type": "text",
+          "score": 0.7766,
+          "rerank_score": 0.9609375,
+          "preview": "meriksa konfigurasi batas timeout koneksi (pastikan minimal 30 detik untuk endpoint sinkron) dan\nmengaktifkan rerouting ke jalur gateway cadangan.\n2) Prosedur untuk ERR_BANK_DOWN ("
+        },
+        {
+          "doc_id": 1,
+          "chunk_id": 8,
+          "page": 6,
+          "type": "text",
+          "score": 0.717,
+          "rerank_score": 0.953125,
+          "preview": "SOP-OPS-04: Penanganan Transaksi Gagal | Halaman 6 dari 8\n7. MATRIKS ESKALASI INSIDEN OPERASIONAL\n| Level | Kondisi Pemicu | Target Respons | Tim Penanggung Jawab | Tindakan Utama "
+        },
+        {
+          "doc_id": 1,
+          "chunk_id": 9,
+          "page": 7,
+          "type": "text",
+          "score": 0.7103,
+          "rerank_score": 0.94140625,
+          "preview": "SOP-OPS-04: Penanganan Transaksi Gagal | Halaman 7 dari 8\n8. PROSEDUR REKONSILIASI H+1 DAN PENANGANAN SUSPECT / PENDING\n1. Setiap pukul 06:00 WIB (H+1), sistem Settlement melakukan"
+        },
+        {
+          "doc_id": 1,
+          "chunk_id": 10,
+          "page": 8,
+          "type": "text",
+          "score": 0.7082,
+          "rerank_score": 0.93359375,
+          "preview": "SOP-OPS-04: Penanganan Transaksi Gagal | Halaman 8 dari 8\n9. DAFTAR KONTAK ESKALASI DAN RIWAYAT REVISI DOKUMEN\n- Desk Operasional 24/7: ops-payment@perusahaan.co.id (Ext. 4100)\n- T"
+        },
+        {
+          "doc_id": 1,
+          "chunk_id": 1,
+          "page": 4,
+          "type": "image",
+          "score": 0.5004,
+          "rerank_score": null,
+          "preview": "Gambar/diagram dari SOP_Penanganan_Transaksi_Gagal.pdf halaman 4. Konteks halaman: SOP-OPS-04: Penanganan Transaksi Gagal | Halaman 4 dari 8\n5. DIAGRAM ALUR PENANGANAN DAN ESKALASI"
+        }
+      ]
+    },
+    {
+      "question": "Mengapa kegagalan transaksi API Partner meningkat sejak 12 Oktober 2026?",
+      "enabled": false,
+      "status": "disabled",
+      "retrieval_ms": 3.7,
+      "rerank_ms": 0.0,
+      "hits": [
+        {
+          "doc_id": 2,
+          "chunk_id": 2,
+          "page": 1,
+          "type": "text",
+          "score": 0.7765,
+          "rerank_score": null,
+          "preview": "ta di seluruh sistem, melainkan terkonsentrasi secara spesifik pada dua kanal: API Partner dan Virtual Account yang diproses melalui gateway Bank Nusantara.\n\n2. Akar Permasalahan ("
+        },
+        {
+          "doc_id": 2,
+          "chunk_id": 4,
+          "page": 2,
+          "type": "text",
+          "score": 0.7641,
+          "rerank_score": null,
+          "preview": "Mengacu pada dokumen SOP_Penanganan_Transaksi_Gagal.pdf (SOP-OPS-04 Bab 4 & Bab 7):\n- Tim SRE menaikkan kembali konfigurasi timeout konektor internal dan mengaktifkan mekanisme Inq"
+        },
+        {
+          "doc_id": 2,
+          "chunk_id": 1,
+          "page": 1,
+          "type": "text",
+          "score": 0.762,
+          "rerank_score": null,
+          "preview": "LAPORAN INVESTIGASI INSIDEN OPERASIONAL (INC-2026-1012)\n\nJudul Insiden: Lonjakan Kegagalan Transaksi (ERR_GW_TIMEOUT_504) pada Kanal API Partner dan Virtual Account Pasca Migrasi G"
+        },
+        {
+          "doc_id": 2,
+          "chunk_id": 3,
+          "page": 1,
+          "type": "text",
+          "score": 0.7149,
+          "rerank_score": null,
+          "preview": "dan Virtual Account, sehingga antrean request memanjang dan waktu respons (response_time_ms) melonjak drastis dari rata-rata ~420 ms menjadi ~9.800 ms.\n\n3. Dampak Kuantitatif per K"
+        }
+      ]
+    },
+    {
+      "question": "Mengapa kegagalan transaksi API Partner meningkat sejak 12 Oktober 2026?",
+      "enabled": true,
+      "status": "applied",
+      "retrieval_ms": 888.4,
+      "rerank_ms": 881.5,
+      "hits": [
+        {
+          "doc_id": 2,
+          "chunk_id": 4,
+          "page": 2,
+          "type": "text",
+          "score": 0.7641,
+          "rerank_score": 1.0,
+          "preview": "Mengacu pada dokumen SOP_Penanganan_Transaksi_Gagal.pdf (SOP-OPS-04 Bab 4 & Bab 7):\n- Tim SRE menaikkan kembali konfigurasi timeout konektor internal dan mengaktifkan mekanisme Inq"
+        },
+        {
+          "doc_id": 2,
+          "chunk_id": 1,
+          "page": 1,
+          "type": "text",
+          "score": 0.762,
+          "rerank_score": 1.0,
+          "preview": "LAPORAN INVESTIGASI INSIDEN OPERASIONAL (INC-2026-1012)\n\nJudul Insiden: Lonjakan Kegagalan Transaksi (ERR_GW_TIMEOUT_504) pada Kanal API Partner dan Virtual Account Pasca Migrasi G"
+        },
+        {
+          "doc_id": 2,
+          "chunk_id": 2,
+          "page": 1,
+          "type": "text",
+          "score": 0.7765,
+          "rerank_score": 0.9921875,
+          "preview": "ta di seluruh sistem, melainkan terkonsentrasi secara spesifik pada dua kanal: API Partner dan Virtual Account yang diproses melalui gateway Bank Nusantara.\n\n2. Akar Permasalahan ("
+        },
+        {
+          "doc_id": 2,
+          "chunk_id": 3,
+          "page": 1,
+          "type": "text",
+          "score": 0.7149,
+          "rerank_score": 0.4375,
+          "preview": "dan Virtual Account, sehingga antrean request memanjang dan waktu respons (response_time_ms) melonjak drastis dari rata-rata ~420 ms menjadi ~9.800 ms.\n\n3. Dampak Kuantitatif per K"
+        }
+      ]
+    },
+    {
+      "question": "Tampilkan diagram vehicle health report HINO.",
+      "enabled": false,
+      "status": "disabled",
+      "retrieval_ms": 4.9,
+      "rerank_ms": 0.0,
+      "hits": [
+        {
+          "doc_id": 7,
+          "chunk_id": 2,
+          "page": 2,
+          "type": "text",
+          "score": 0.6528,
+          "rerank_score": null,
+          "preview": "Section I Status Kesehatan Unit (Overall Health Status)"
+        },
+        {
+          "doc_id": 7,
+          "chunk_id": 3,
+          "page": 3,
+          "type": "text",
+          "score": 0.5961,
+          "rerank_score": null,
+          "preview": "Section II. Findings Summary (Rangkuman analisa)"
+        },
+        {
+          "doc_id": 7,
+          "chunk_id": 2,
+          "page": 2,
+          "type": "image",
+          "score": 0.5852,
+          "rerank_score": null,
+          "preview": "Gambar/diagram dari HINO AI CCO - Vehicle Health Report Diagrams.pdf halaman 2. Konteks halaman: Section I Status Kesehatan Unit (Overall Health Status)"
+        },
+        {
+          "doc_id": 7,
+          "chunk_id": 4,
+          "page": 4,
+          "type": "text",
+          "score": 0.5773,
+          "rerank_score": null,
+          "preview": "Section IV. Summary of Technical Analysis (Rangkuman Analisa \nTeknis)"
+        },
+        {
+          "doc_id": 7,
+          "chunk_id": 5,
+          "page": 5,
+          "type": "text",
+          "score": 0.5722,
+          "rerank_score": null,
+          "preview": "Section V. Strategic Impact Analysis (Analisa Dampak Strategis)"
+        },
+        {
+          "doc_id": 7,
+          "chunk_id": 6,
+          "page": 6,
+          "type": "text",
+          "score": 0.5722,
+          "rerank_score": null,
+          "preview": "Section VI. Recommendations (Rekomendasi untuk Customer)"
+        }
+      ]
+    },
+    {
+      "question": "Tampilkan diagram vehicle health report HINO.",
+      "enabled": true,
+      "status": "applied",
+      "retrieval_ms": 1267.4,
+      "rerank_ms": 1261.6,
+      "hits": [
+        {
+          "doc_id": 7,
+          "chunk_id": 2,
+          "page": 2,
+          "type": "text",
+          "score": 0.6528,
+          "rerank_score": 0.029296875,
+          "preview": "Section I Status Kesehatan Unit (Overall Health Status)"
+        },
+        {
+          "doc_id": 7,
+          "chunk_id": 4,
+          "page": 4,
+          "type": "text",
+          "score": 0.5773,
+          "rerank_score": 0.00186920166015625,
+          "preview": "Section IV. Summary of Technical Analysis (Rangkuman Analisa \nTeknis)"
+        },
+        {
+          "doc_id": 7,
+          "chunk_id": 1,
+          "page": 1,
+          "type": "text",
+          "score": 0.5422,
+          "rerank_score": 0.0008544921875,
+          "preview": "DTC Catalog Extraction"
+        },
+        {
+          "doc_id": 7,
+          "chunk_id": 3,
+          "page": 3,
+          "type": "text",
+          "score": 0.5961,
+          "rerank_score": 0.000637054443359375,
+          "preview": "Section II. Findings Summary (Rangkuman analisa)"
+        },
+        {
+          "doc_id": 7,
+          "chunk_id": 2,
+          "page": 2,
+          "type": "image",
+          "score": 0.5852,
+          "rerank_score": null,
+          "preview": "Gambar/diagram dari HINO AI CCO - Vehicle Health Report Diagrams.pdf halaman 2. Konteks halaman: Section I Status Kesehatan Unit (Overall Health Status)"
+        },
+        {
+          "doc_id": 7,
+          "chunk_id": 4,
+          "page": 4,
+          "type": "image",
+          "score": 0.5627,
+          "rerank_score": null,
+          "preview": "Gambar/diagram dari HINO AI CCO - Vehicle Health Report Diagrams.pdf halaman 4. Konteks halaman: Section IV. Summary of Technical Analysis (Rangkuman Analisa \nTeknis)"
+        }
+      ]
+    }
+  ]
+}

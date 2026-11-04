@@ -1,0 +1,30 @@
+purpose:
+  stands_in_for: OpenRouter POST /api/v1/rerank with text candidates.
+  unblocks: Local HTTP verification of ranking identity, error fallback, and total timeout without provider charges.
+assumptions:
+  - id: request-and-response-contract
+    status: supported
+    claim: OpenRouter accepts model/query/documents/top_n and returns results with candidate index and relevance_score.
+    reason: Published endpoint contract and a successful live Qwen3 request support this shape.
+    verification: On 2026-11-04 the live API ranked synthetic capital-city text ahead of a fruit distractor; original chunk IDs 18 and 17 were preserved. The local mock uses this wire shape but reverses fixtures deterministically and does not model semantic quality.
+    source: https://openrouter.ai/docs/api/api-reference/rerank/create-rerank; app/kb/rerank.py; tests/test_rerank.py
+    updated_at: "2026-11-04"
+  - id: local-failure-recovery
+    status: supported
+    claim: The application preserves vector order and image candidates when the reranker returns 429/503 or exceeds the deadline in the tested simulation.
+    reason: The actual HTTP client and search tool ran against the local simulation; caller outcomes and simulation request events agreed.
+    verification: SimulationTests exercised 200, 429, 503, and a 500ms delayed response with a 100ms application deadline. The request log recorded four POST /api/v1/rerank calls; errors/timeouts produced fallback and images were retained. Other tests covered invalid JSON, indices, non-finite scores, and real ephemeral Chroma neighbor lookup. Provider availability is not established by this simulation.
+    source: tests/test_rerank.py; postman/mocks/openrouter-rerank/default.js; postman/simulations/rerank/rerank.sim.yaml
+    updated_at: "2026-11-04"
+  - id: semantic-improvement
+    status: unknown
+    claim: Reranking improves final answer quality across the knowledge base.
+    reason: Three live retrieval comparisons show working integration and changed rankings, but do not constitute a labeled answer-quality benchmark.
+    verification: Live comparisons on 2026-11-04 applied reranking to SOP, incident, and HINO diagram searches. Rerank time was approximately 882-1262ms. Query embeddings were reused per pair; generation and vision were not measured. See the saved report for exact results.
+    source: tests/rerank_validation.json
+    updated_at: "2026-11-04"
+fingerprints:
+  - id: local-2026-11-04
+    date: "2026-11-04"
+    commit: null
+    cli: "1.85.0; local workspace has no Git repository. Owner mock search skipped because postman status failed with a macOS keychain error. Mock built from the published contract."

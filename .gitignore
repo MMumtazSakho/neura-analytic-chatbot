@@ -1,0 +1,38 @@
+# Local environments and secrets
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+
+# Python, notebooks, and test caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.coverage
+htmlcov/
+*.egg-info/
+build/
+dist/
+
+# Local editor / OS files and runtime logs
+.DS_Store
+.idea/
+.vscode/
+*.log
+*.pid
+kernel-*.json
+*-wal
+*-shm
+*-journal
+
+# External project; never include in this repository
+ADK/
+
+# Runtime session uploads, generated outputs, and shared-data symlinks.
+data/workspaces/
+
+# Keep sample_files/ and knowledge data (SQLite, ChromaDB, documents, images).

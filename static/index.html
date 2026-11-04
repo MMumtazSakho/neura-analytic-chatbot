@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data Analytics</title>
+  <link rel="stylesheet" href="/static/styles.css?v=8" />
+  <script src="/static/vendor/marked.min.js"></script>
+  <script src="/static/vendor/purify.min.js"></script>
+</head>
+
+<body>
+  <div class="app-shell">
+    <!-- Left Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <svg class="brand-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 3v18h18" />
+            <path d="M7 16l4-4 4 4 5-6" />
+          </svg>
+          <span class="brand-name">Analytics</span>
+        </div>
+        <button id="new-chat-btn" class="new-chat-btn" type="button" title="Percakapan baru">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>Chat baru</span>
+        </button>
+      </div>
+
+      <div class="sidebar-group-label">Riwayat Percakapan</div>
+      <nav id="session-list" class="session-list" aria-label="Riwayat percakapan"></nav>
+
+      <div class="sidebar-footer">
+        <button id="open-db-btn" class="kb-nav-btn" type="button">
+          <div class="kb-nav-left">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+              stroke-linecap="round" stroke-linejoin="round">
+              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+            </svg>
+            <span>Database SQL</span>
+          </div>
+          <span id="db-count-badge" class="kb-badge">0</span>
+        </button>
+        <button id="open-kb-btn" class="kb-nav-btn" type="button">
+          <div class="kb-nav-left">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            </svg>
+            <span>Knowledge Base</span>
+          </div>
+          <span id="kb-count-badge" class="kb-badge">0</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Chat Area -->
+    <main class="main-pane">
+      <header class="topbar">
+        <div id="active-session-title" class="topbar-title">Percakapan baru</div>
+        <div class="topbar-actions">
+          <button id="topbar-db-btn" class="topbar-btn" type="button">
+            Database SQL
+          </button>
+          <button id="topbar-kb-btn" class="topbar-btn" type="button">
+            Dokumen & Data
+          </button>
+        </div>
+      </header>
+
+      <section id="chat-log" class="chat-log" aria-live="polite">
+        <div id="empty-state" class="empty-state">
+          <h1 class="empty-title">Analisis Data & Dokumen Operasional</h1>
+          <p class="empty-desc">Ajukan pertanyaan seputar transaksi SQL, unggah spreadsheet Excel/CSV, atau telusuri
+            dokumen SOP & insiden.</p>
+          <div class="starter-grid">
+            <button type="button" class="starter-card"
+              data-prompt="Bagaimana perbandingan volume transaksi dan tingkat kegagalan bulan ini dibandingkan bulan sebelumnya?">
+              <span class="starter-tag">SQL · Tren</span>
+              <span class="starter-text">Perbandingan volume & kegagalan transaksi bulan ini vs bulan lalu</span>
+            </button>
+            <button type="button" class="starter-card"
+              data-prompt="Mengapa tingkat kegagalan transaksi meningkat pada bulan Oktober 2026? Faktor, kanal, bank, dan sejak tanggal berapa perubahan tersebut terjadi?">
+              <span class="starter-tag">Investigasi</span>
+              <span class="starter-text">Investigasi akar penyebab lonjakan gagal transaksi di Oktober 2026</span>
+            </button>
+            <button type="button" class="starter-card"
+              data-prompt="Berdasarkan dokumen SOP yang tersedia, apa perbedaan prosedur penanganan untuk setiap jenis kode error kegagalan transaksi?">
+              <span class="starter-tag">Dokumen SOP</span>
+              <span class="starter-text">Perbedaan prosedur penanganan untuk tiap kode error transaksi gagal</span>
+            </button>
+            <button type="button" class="starter-card"
+              data-prompt="Buatkan grafik tren harian tingkat kegagalan transaksi pada bulan Oktober 2026 untuk kanal API Partner dan Virtual Account, lalu jelaskan polanya.">
+              <span class="starter-tag">Visualisasi Python</span>
+              <span class="starter-text">Buat grafik tren harian kegagalan kanal API Partner & Virtual Account</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <button id="jump-latest-btn" class="jump-latest-btn" type="button" hidden>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <polyline points="19 12 12 19 5 12"></polyline>
+        </svg>
+        <span>Ke pesan terbaru</span>
+      </button>
+
+      <footer class="composer-area">
+        <div class="composer-card">
+          <div id="attachment-tray" class="attachment-tray" hidden></div>
+          <form id="chat-form" class="composer-row">
+            <label class="icon-action-btn" title="Lampirkan file (CSV, Excel, PDF, DOCX, TXT, Gambar)">
+              <input id="chat-file-input" type="file" accept=".csv,.xlsx,.xls,.pdf,.docx,.txt,.md,.png,.jpg,.jpeg"
+                hidden multiple />
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path
+                  d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+              </svg>
+            </label>
+            <textarea id="message-input" rows="1" placeholder="Tanyakan data, minta grafik, atau lampirkan file..."
+              required></textarea>
+            <button id="send-btn" class="send-btn" type="submit" title="Kirim pesan (Enter)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </form>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <!-- Knowledge Base Modal / Slide-over Drawer -->
+  <div id="kb-overlay" class="kb-overlay" hidden>
+    <div id="kb-backdrop" class="kb-backdrop"></div>
+    <aside class="kb-panel" aria-label="Knowledge Base & Shared Data">
+      <div class="kb-header">
+        <div>
+          <h2 class="kb-title">Knowledge Base & Shared Data</h2>
+          <!-- <p class="kb-subtitle">Dokumen PDF/DOCX/TXT di-index ke ChromaDB. File CSV/Excel langsung tersedia di folder -->
+          <!-- <code>shared/</code>.</p> -->
+        </div>
+        <button id="close-kb-btn" class="kb-close-btn" type="button" title="Tutup (Esc)" aria-label="Tutup panel">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="kb-content">
+        <form id="kb-upload-form" class="kb-upload-card">
+          <label for="kb-file-input" class="file-dropzone" id="kb-dropzone">
+            <input id="kb-file-input" type="file" accept=".pdf,.docx,.txt,.csv,.xlsx,.xls" hidden required />
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <div class="dropzone-text">
+              <span id="kb-selected-filename" class="dropzone-primary">Pilih file PDF, DOCX, TXT, CSV, atau XLSX</span>
+              <span class="dropzone-secondary">Klik untuk memilih file dari komputer Anda</span>
+            </div>
+          </label>
+
+          <div class="kb-form-controls">
+            <input id="kb-desc-input" class="kb-input" type="text"
+              placeholder="Deskripsi opsional (mis: SOP penanganan gagal transaksi)..." />
+            <button id="kb-submit-btn" class="kb-upload-btn" type="submit">
+              Unggah File
+            </button>
+          </div>
+        </form>
+
+        <div class="kb-list-header">
+          <span>Daftar Dokumen & Dataset Terdaftar</span>
+          <label class="kb-master-toggle" title="Aktifkan atau nonaktifkan seluruh item Knowledge Base">
+            <span id="kb-master-label">Semua Aktif</span>
+            <input id="kb-master-checkbox" type="checkbox" checked />
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div id="kb-items-list" class="kb-items-list"></div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Database SQL Modal / Slide-over Drawer -->
+  <div id="db-overlay" class="kb-overlay" hidden>
+    <div id="db-backdrop" class="kb-backdrop"></div>
+    <aside class="kb-panel db-panel" aria-label="Database SQL & Table Preview">
+      <div class="kb-header">
+        <div>
+          <h2 class="kb-title">Database SQL</h2>
+        </div>
+        <button id="close-db-btn" class="kb-close-btn" type="button" title="Tutup (Esc)" aria-label="Tutup panel database">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="kb-content db-content">
+        <div class="kb-list-header">
+          <span>Daftar Database Terhubung</span>
+          <span id="db-summary-meta" class="db-summary-meta"></span>
+        </div>
+        <div id="db-list-container" class="db-list-container"></div>
+
+        <div id="db-explorer-section" class="db-explorer-section" hidden>
+          <div class="db-explorer-top">
+            <div class="db-table-tabs-wrap">
+              <span class="db-section-label">Tabel</span>
+              <div id="db-table-tabs" class="db-table-tabs"></div>
+            </div>
+            <div class="db-view-switch">
+              <button id="db-view-rows-btn" class="db-switch-btn active" type="button">Preview Isi Tabel</button>
+              <button id="db-view-schema-btn" class="db-switch-btn" type="button">Skema &amp; Kolom</button>
+            </div>
+          </div>
+
+          <div id="db-active-table-desc" class="db-active-table-desc"></div>
+
+          <!-- Rows Preview View -->
+          <div id="db-rows-view" class="db-rows-view">
+            <div class="db-pagination-bar">
+              <span id="db-page-info" class="db-page-info">Memuat data...</span>
+              <div class="db-pagination-controls">
+                <label class="db-page-size-label">
+                  <span>Baris:</span>
+                  <select id="db-page-size" class="db-page-size-select">
+                    <option value="25" selected>25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                </label>
+                <button id="db-prev-btn" class="db-page-btn" type="button" disabled>&lsaquo; Sebelumnya</button>
+                <button id="db-next-btn" class="db-page-btn" type="button" disabled>Berikutnya &rsaquo;</button>
+              </div>
+            </div>
+
+            <div class="db-table-scroll">
+              <table class="db-preview-table">
+                <thead id="db-preview-thead"></thead>
+                <tbody id="db-preview-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Schema View -->
+          <div id="db-schema-view" class="db-schema-view" hidden>
+            <div class="db-table-scroll">
+              <table class="db-preview-table db-schema-table">
+                <thead>
+                  <tr>
+                    <th>Kolom</th>
+                    <th>Tipe</th>
+                    <th>Deskripsi Bisnis</th>
+                    <th>Rentang / Contoh Nilai (Distinct)</th>
+                  </tr>
+                </thead>
+                <tbody id="db-schema-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script src="/static/app.js?v=8"></script>
+</body>
+
+</html>
