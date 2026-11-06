@@ -35,6 +35,11 @@ The agent combines three paths: RAG retrieves document context, NL2SQL queries o
 
 RAG search respects document visibility, readiness, and enabled status. With `RERANK_ENABLED=true`, text candidates are reranked by `qwen/qwen3-reranker-8b`; image candidates retain embedding-based ranking. API failures or timeouts fall back to vector ordering.
 
+![Bi-Encoder vs Cross-Encoder retrieval](diagram/bi-encoder-vs-cross-encoder.png)
+
+- **Bi-Encoder**: Independently encodes queries and document chunks into dense vectors for fast cosine similarity search in ChromaDB.
+- **Cross-Encoder**: Jointly encodes query and candidate text pairs with full cross-attention for higher scoring precision during reranking.
+
 Results preserve the original `doc_id` and `chunk_id`, allowing `get_chunk` to retrieve neighboring text. Disabling reranking restores the original combined vector search. Environment changes require a server restart.
 
 ## Knowledge Upload and Indexing
