@@ -356,7 +356,8 @@ html, body {
 
 .empty-state,
 .turn-item,
-.tool-step {
+.tool-step,
+.tool-group {
   max-width: 760px;
   margin-left: auto;
   margin-right: auto;
@@ -501,6 +502,94 @@ html, body {
     animation: none;
     opacity: 0.65;
   }
+}
+
+/* Collapsible Tool-Step Group (e.g. "Menjalankan 2 query SQL, membuat grafik, dan 3 langkah lainnya ›") */
+.tool-group {
+  margin: 6px auto 10px;
+}
+
+.tool-group-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 2px;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 450;
+  line-height: 1.4;
+  user-select: none;
+  list-style: none;
+  transition: color 0.12s ease;
+}
+
+.tool-group-summary::-webkit-details-marker {
+  display: none;
+}
+
+.tool-group-summary:hover {
+  color: var(--text);
+}
+
+.tool-group-chevron {
+  display: inline-block;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--text-muted);
+  transition: transform 0.15s ease;
+  transform: translateY(-0.5px);
+}
+
+.tool-group[open] .tool-group-chevron {
+  transform: rotate(90deg);
+}
+
+.tool-group-spinner {
+  display: none;
+  width: 11px;
+  height: 11px;
+  border: 1.6px solid var(--border-strong);
+  border-top-color: var(--text-secondary);
+  border-radius: 50%;
+  animation: tool-group-spin 0.75s linear infinite;
+  flex-shrink: 0;
+}
+
+.tool-group.is-running .tool-group-spinner {
+  display: inline-block;
+}
+
+@keyframes tool-group-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.tool-group-body {
+  margin-top: 6px;
+  padding-left: 12px;
+  border-left: 2px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tool-group-body .tool-step {
+  margin: 0;
+  width: 100%;
+}
+
+.tool-group-body .tool-group-note {
+  margin: 2px 0;
+  padding: 2px 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.tool-group-body .tool-group-note p:last-child {
+  margin-bottom: 0;
 }
 
 /* Tool Step Accordion */
@@ -1149,6 +1238,23 @@ html, body {
   color: var(--text-secondary);
   line-height: 1.45;
   margin-top: 3px;
+}
+
+.kb-item-open {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.kb-item-open:hover {
+  background: var(--bg-muted);
+  color: var(--text);
 }
 
 .kb-item-delete {

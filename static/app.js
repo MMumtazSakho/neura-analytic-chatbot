@@ -216,11 +216,16 @@ chatLogEl.addEventListener(
   true
 );
 
-// User opened a tool step to inspect it: stop yanking the view to the bottom.
+// User opened a tool group or tool step to inspect it: stop yanking the view to the bottom.
 chatLogEl.addEventListener(
   "toggle",
   (e) => {
-    if (e.target && e.target.classList && e.target.classList.contains("tool-step") && e.target.open) {
+    if (
+      e.target &&
+      e.target.classList &&
+      (e.target.classList.contains("tool-step") || e.target.classList.contains("tool-group")) &&
+      e.target.open
+    ) {
       stickToBottom = false;
       updateJumpButton();
     }
@@ -313,8 +318,11 @@ function formatToolTitle(tool, args) {
     case "run_sql_query": {
       const sqlOneLine = ((args && args.sql) || "").replace(/\s+/g, " ").trim();
       const shortSql =
-        sqlOneLine.length > 56 ? `${sqlOneLine.slice(0, 56)}...` : sqlOneLine;
-      return shortSql ? `SQL · ${shortSql}` : "SQL Query";
+        sqlOneLine.length > 52 ? `${sqlOneLine.slice(0, 52)}...` : sqlOneLine;
+      const isSave =
+        args && (args.save === true || String(args.save).toLowerCase() === "true");
+      const prefix = isSave ? "SQL → CSV" : "SQL";
+      return shortSql ? `${prefix} · ${shortSql}` : prefix;
     }
     case "execute_python":
       return "Python Workspace";
@@ -377,8 +385,133 @@ function appendUserTurn(text, attachments = []) {
   followLatest(true);
 }
 
+/* ================= Collapsible tool-step groups =================
+ * Consecutive tool steps (with no assistant text in between) are collected into one
+ * collapsed group whose header summarizes the work, e.g.
+ * "Menjalankan 2 query SQL, membuat grafik, dan 3 langkah lainnya ›".
+ */
+const TOOL_GROUP_PHRASES = {
+  get_database_schema: () => "memeriksa skema database",
+  run_sql_query: (n) => (n > 1 ? `menjalankan ${n} query SQL` : "menjalankan query SQL"),
+  execute_python: (n) => (n > 1 ? `menjalankan ${n} kode Python` : "menjalankan kode Python"),
+  view_image: (n) => (n > 1 ? `melihat ${n} gambar` : "melihat gambar"),
+  get_knowledge_list: () => "membuka daftar dokumen",
+  search_knowledge_base: (n) => (n > 1 ? `mencari dokumen ${n} kali` : "mencari dokumen"),
+  get_chunk: (n) => (n > 1 ? `membaca ${n} potongan dokumen` : "membaca potongan dokumen"),
+};
+
+function getTurnNodesAfterLastUser() {
+  const children = Array.from(chatLogEl.children).filter(
+    (el) => el !== emptyStateEl && !el.classList.contains("response-loader")
+  );
+  let lastUserIdx = -1;
+  for (let i = children.length - 1; i >= 0; i -= 1) {
+    if (children[i].classList.contains("user-row")) {
+      lastUserIdx = i;
+      break;
+    }
+  }
+  return {
+    lastUserEl: lastUserIdx >= 0 ? children[lastUserIdx] : null,
+    turnNodes: children.slice(lastUserIdx + 1),
+  };
+}
+
+function getOrCreateToolGroup() {
+  const { lastUserEl, turnNodes } = getTurnNodesAfterLastUser();
+  let group = turnNodes.find((el) => el.classList.contains("tool-group"));
+
+  if (!group) {
+    group = document.createElement("details");
+    group.className = "tool-group";
+
+    const summary = document.createElement("summary");
+    summary.className = "tool-group-summary";
+    const spinner = document.createElement("span");
+    spinner.className = "tool-group-spinner";
+    spinner.setAttribute("aria-hidden", "true");
+    const label = document.createElement("span");
+    label.className = "tool-group-label";
+    const chevron = document.createElement("span");
+    chevron.className = "tool-group-chevron";
+    chevron.setAttribute("aria-hidden", "true");
+    chevron.textContent = "›";
+    summary.append(spinner, label, chevron);
+
+    const body = document.createElement("div");
+    body.className = "tool-group-body";
+
+    group.append(summary, body);
+    group._steps = [];
+    group._label = label;
+    group._body = body;
+
+    if (lastUserEl && lastUserEl.nextSibling) {
+      chatLogEl.insertBefore(group, lastUserEl.nextSibling);
+    } else {
+      chatLogEl.appendChild(group);
+    }
+  }
+
+  // Absorb any intermediate assistant messages emitted before this tool call into the group body
+  turnNodes.forEach((node) => {
+    if (node.classList.contains("assistant-block") && node.parentElement === chatLogEl) {
+      node.classList.add("tool-group-note");
+      group._body.appendChild(node);
+    }
+  });
+
+  return group;
+}
+
+function refreshToolGroup(group) {
+  if (!group) return;
+  const order = [];
+  const counts = new Map();
+  group._steps.forEach((s) => {
+    if (!counts.has(s.tool)) order.push(s.tool);
+    counts.set(s.tool, (counts.get(s.tool) || 0) + 1);
+  });
+
+  const phraseFor = (tool) => {
+    const n = counts.get(tool);
+    const fn = TOOL_GROUP_PHRASES[tool];
+    return fn ? fn(n) : n > 1 ? `menjalankan ${tool} ${n} kali` : `menjalankan ${tool}`;
+  };
+
+  let text;
+  if (order.length <= 2) {
+    text = order.map(phraseFor).join(" dan ");
+  } else {
+    const shown = order.slice(0, 2).map(phraseFor);
+    const rest = order.slice(2).reduce((acc, t) => acc + counts.get(t), 0);
+    text = `${shown.join(", ")}, dan ${rest} langkah lainnya`;
+  }
+  text = text ? text.charAt(0).toUpperCase() + text.slice(1) : "Menjalankan tool";
+
+  const running = group._steps.some((s) => !s.done);
+  group._label.textContent = running ? `${text}…` : text;
+  group.classList.toggle("is-running", running);
+}
+
+function finalizeToolGroups() {
+  chatLogEl.querySelectorAll(".tool-group.is-running").forEach((group) => {
+    (group._steps || []).forEach((s) => {
+      s.done = true;
+    });
+    refreshToolGroup(group);
+  });
+}
+
 function appendToolStep(event) {
   hideEmptyState();
+  const group = getOrCreateToolGroup();
+  const stepState = {
+    tool: event.tool,
+    done: event.output != null || event.duration_ms != null,
+  };
+  group._steps.push(stepState);
+
   const details = document.createElement("details");
   details.className = "tool-step";
   details.dataset.toolId = event.tool_id;
@@ -432,15 +565,18 @@ function appendToolStep(event) {
 
   body.append(outLabel, outPre);
   details.append(summary, body);
-  chatLogEl.appendChild(details);
+  group._body.appendChild(details);
 
   toolElements.set(event.tool_id, {
     details,
     durSpan,
     outPre,
+    group,
+    stepState,
     tool: event.tool,
     args: event.args,
   });
+  refreshToolGroup(group);
   followLatest();
 }
 
@@ -461,6 +597,8 @@ function updateToolStepResult(event) {
       ? `${(event.duration_ms / 1000).toFixed(2)}s`
       : "done";
   entry.outPre.textContent = formatToolOutputDisplay(event.output);
+  if (entry.stepState) entry.stepState.done = true;
+  refreshToolGroup(entry.group);
   followLatest();
 }
 
@@ -575,8 +713,18 @@ async function loadSessionsList() {
   }
 }
 
+let activeStreamController = null;
+
+function detachActiveStream() {
+  if (activeStreamController) {
+    activeStreamController.abort();
+    activeStreamController = null;
+  }
+}
+
 async function selectSession(sessionId, title = "Percakapan") {
   setSidebarOpen(false, { restoreFocus: true });
+  detachActiveStream();
   currentSessionId = sessionId;
   localStorage.setItem(SESSION_STORAGE_KEY, sessionId);
   activeSessionTitleEl.textContent = title;
@@ -589,7 +737,9 @@ async function selectSession(sessionId, title = "Percakapan") {
     if (!resp.ok) return;
     const data = await resp.json();
     const timeline = data.timeline || [];
-    if (timeline.length === 0) {
+    const activeRun = data.active_run || null;
+
+    if (timeline.length === 0 && !activeRun) {
       showEmptyState();
       return;
     }
@@ -605,6 +755,10 @@ async function selectSession(sessionId, title = "Percakapan") {
         finishAssistantMessage(msgId);
       }
     });
+
+    if (activeRun) {
+      await resumeSessionStream(sessionId, activeRun);
+    }
   } catch (err) {
     console.error("Failed to load session history:", err);
   }
@@ -612,6 +766,7 @@ async function selectSession(sessionId, title = "Percakapan") {
 
 async function createNewChatSession() {
   setSidebarOpen(false, { restoreFocus: true });
+  detachActiveStream();
   try {
     const resp = await fetch("/api/sessions", { method: "POST" });
     if (!resp.ok) return;
@@ -788,12 +943,59 @@ function handleStreamEvent(ev) {
     case "done":
       responseViewActive = false;
       runningTools.clear();
+      finalizeToolGroups();
       hideResponseLoader();
       setStatus("Siap", "idle");
       loadSessionsList();
       break;
     default:
       break;
+  }
+}
+
+async function resumeSessionStream(sessionId, activeRun) {
+  appendUserTurn(activeRun.user_text || "", activeRun.attachments || []);
+
+  setStatus("Menganalisis...", "busy");
+  sendBtnEl.disabled = true;
+  messageInputEl.disabled = true;
+  responseViewActive = true;
+  runningTools.clear();
+  showResponseLoader();
+
+  const controller = new AbortController();
+  activeStreamController = controller;
+
+  try {
+    const resp = await fetch(
+      `/api/sessions/${encodeURIComponent(sessionId)}/stream`,
+      { signal: controller.signal }
+    );
+    if (!resp.ok) {
+      throw new Error("Gagal menyambung kembali ke proses analisis.");
+    }
+    await consumeSseStream(resp);
+  } catch (err) {
+    if (err && err.name === "AbortError") {
+      return;
+    }
+    hideResponseLoader();
+    setStatus("Error", "error");
+    appendErrorBanner(err.message || "Koneksi stream terputus.");
+  } finally {
+    if (activeStreamController === controller) {
+      activeStreamController = null;
+      responseViewActive = false;
+      runningTools.clear();
+      finalizeToolGroups();
+      hideResponseLoader();
+      sendBtnEl.disabled = false;
+      messageInputEl.disabled = false;
+      messageInputEl.focus();
+      if (statusIndicatorEl?.dataset.state === "busy") {
+        setStatus("Siap", "idle");
+      }
+    }
   }
 }
 
@@ -816,6 +1018,9 @@ async function sendChatMessage(text) {
   runningTools.clear();
   showResponseLoader();
 
+  const controller = new AbortController();
+  activeStreamController = controller;
+
   try {
     const resp = await fetch("/api/chat/stream", {
       method: "POST",
@@ -825,6 +1030,7 @@ async function sendChatMessage(text) {
         message: text,
         attachment_notes: attachmentNotes,
       }),
+      signal: controller.signal,
     });
 
     if (!resp.ok) {
@@ -834,18 +1040,25 @@ async function sendChatMessage(text) {
 
     await consumeSseStream(resp);
   } catch (err) {
+    if (err && err.name === "AbortError") {
+      return;
+    }
     hideResponseLoader();
     setStatus("Error", "error");
     appendErrorBanner(err.message || "Gagal terhubung ke server.");
   } finally {
-    responseViewActive = false;
-    runningTools.clear();
-    hideResponseLoader();
-    sendBtnEl.disabled = false;
-    messageInputEl.disabled = false;
-    messageInputEl.focus();
-    if (statusIndicatorEl?.dataset.state === "busy") {
-      setStatus("Siap", "idle");
+    if (activeStreamController === controller) {
+      activeStreamController = null;
+      responseViewActive = false;
+      runningTools.clear();
+      finalizeToolGroups();
+      hideResponseLoader();
+      sendBtnEl.disabled = false;
+      messageInputEl.disabled = false;
+      messageInputEl.focus();
+      if (statusIndicatorEl?.dataset.state === "busy") {
+        setStatus("Siap", "idle");
+      }
     }
   }
 }
@@ -924,6 +1137,28 @@ async function refreshKbList() {
 
       const actions = document.createElement("div");
       actions.className = "kb-item-actions";
+
+      const isPdf =
+        typeof item.filename === "string" &&
+        item.filename.toLowerCase().endsWith(".pdf");
+      if (isPdf) {
+        const openLink = document.createElement("a");
+        openLink.className = "kb-item-open";
+        openLink.href = `/api/kb/${encodeURIComponent(item.id)}/file`;
+        openLink.target = "_blank";
+        openLink.rel = "noopener noreferrer";
+        openLink.title = "Buka PDF di tab baru";
+        openLink.setAttribute("aria-label", `Buka ${item.filename} di tab baru`);
+        openLink.innerHTML = `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+        `;
+        actions.appendChild(openLink);
+      }
 
       const toggleLabel = document.createElement("label");
       toggleLabel.className = "toggle-switch";

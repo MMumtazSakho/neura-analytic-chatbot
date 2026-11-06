@@ -20,7 +20,7 @@ COPY sample_files ./sample_files
 COPY data ./data
 
 # Sanitasi data di dalam image container:
-# 1. Hapus chunks ChromaDB & baris catalog untuk dokumen non-seed (id > 4)
+# 1. Hapus chunks ChromaDB & baris catalog untuk dokumen non-seed (scope != 'global')
 # 2. Reset enabled=1 untuk semua dokumen seed bawaan
 # 3. Kosongkan riwayat sesi chat testing lokal
 RUN python -c "\
@@ -28,14 +28,13 @@ import sqlite3, pathlib; \
 from app.kb.store import delete_document_chunks; \
 db = pathlib.Path('/app/data/app_state.db'); \
 conn = sqlite3.connect(str(db)); \
-non_seed = [r[0] for r in conn.execute('SELECT id FROM kb_catalog WHERE id > 4').fetchall()]; \
+non_seed = [r[0] for r in conn.execute(\"SELECT id FROM kb_catalog WHERE scope != 'global'\").fetchall()]; \
 [delete_document_chunks(doc_id) for doc_id in non_seed]; \
-conn.execute('DELETE FROM kb_catalog WHERE id > 4'); \
+conn.execute(\"DELETE FROM kb_catalog WHERE scope != 'global'\"); \
 conn.execute('UPDATE kb_catalog SET enabled = 1'); \
 tables = [r[0] for r in conn.execute(\"SELECT name FROM sqlite_master WHERE type='table'\").fetchall()]; \
 [conn.execute(f'DELETE FROM \"{t}\"') for t in ('session_meta', 'events', 'sessions', 'user_states', 'app_states') if t in tables]; \
-conn.commit(); conn.execute('VACUUM'); conn.close(); \
-[p.unlink() for p in pathlib.Path('/app/data/kb_images').glob('doc[56789]*')]"
+conn.commit(); conn.execute('VACUUM'); conn.close()"
 
 EXPOSE 8080
 

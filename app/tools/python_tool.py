@@ -14,9 +14,10 @@ async def execute_python(code: str, tool_context: ToolContext) -> dict[str, Any]
 
     Variables, DataFrames, and imports persist across calls within the same chat session.
     Working directory structure:
-      - 'uploads/' : files uploaded in the current chat session (CSV, XLSX, small PDF/TXT/DOCX)
-      - 'shared/'  : shared CSV/XLSX datasets uploaded via the Knowledge Base
-      - 'outputs/' : save any generated matplotlib/seaborn charts here (e.g. plt.savefig('outputs/chart.png', bbox_inches='tight'))
+      - 'sql_results/' : CSV files saved by `run_sql_query(..., save=True)` or auto-saved large SQL results (e.g. `pd.read_csv('sql_results/query_1.csv')`)
+      - 'uploads/'     : files uploaded in the current chat session (CSV, XLSX, small PDF/TXT/DOCX)
+      - 'shared/'      : shared CSV/XLSX datasets uploaded via the Knowledge Base
+      - 'outputs/'     : save any generated matplotlib/seaborn charts here (e.g. plt.savefig('outputs/chart.png', bbox_inches='tight'))
 
     Always print() summary tables or metrics you want to inspect. After saving a chart to 'outputs/<name>.png',
     call view_image('outputs/<name>.png') to inspect it visually before embedding it in your final response.

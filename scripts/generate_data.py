@@ -1,4 +1,6 @@
-"""Generate deterministic synthetic SQL database, PDF/DOCX/TXT documents, and sample spreadsheets."""
+"""Generate deterministic synthetic SQL database, PDF/DOCX/TXT documents, and sample spreadsheets
+for PT Neural Technologies Indonesia (NTI) - Sales, Products, and Operations.
+"""
 
 from __future__ import annotations
 
@@ -33,7 +35,7 @@ SEED_DOCS_DIR = DATA_DIR / "seed_docs"
 
 
 def generate_sqlite_database() -> None:
-    """Create transactions.db with 6 months of operational data and a planted October anomaly."""
+    """Create NTI sales & client database with 6 months of operational data and planted October anomaly."""
     ensure_runtime_dirs()
     if TRANSACTIONS_DB_PATH.exists():
         TRANSACTIONS_DB_PATH.unlink()
@@ -44,12 +46,13 @@ def generate_sqlite_database() -> None:
 
     cur.execute(
         """
-        CREATE TABLE merchants (
-            merchant_id TEXT PRIMARY KEY,
+        CREATE TABLE clients (
+            client_id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
-            category TEXT NOT NULL,
+            industry TEXT NOT NULL,
             city TEXT NOT NULL,
             tier TEXT NOT NULL,
+            account_manager TEXT NOT NULL,
             onboarded_at TEXT NOT NULL
         )
         """
@@ -57,299 +60,362 @@ def generate_sqlite_database() -> None:
 
     cur.execute(
         """
-        CREATE TABLE transactions (
-            tx_id TEXT PRIMARY KEY,
+        CREATE TABLE sales_orders (
+            order_id TEXT PRIMARY KEY,
             created_at TEXT NOT NULL,
-            tx_date TEXT NOT NULL,
-            tx_month TEXT NOT NULL,
-            merchant_id TEXT NOT NULL,
-            channel TEXT NOT NULL,
-            payment_method TEXT NOT NULL,
-            bank TEXT NOT NULL,
-            merchant_category TEXT NOT NULL,
+            order_date TEXT NOT NULL,
+            order_month TEXT NOT NULL,
+            client_id TEXT NOT NULL,
+            client_name TEXT NOT NULL,
+            industry TEXT NOT NULL,
+            product_line TEXT NOT NULL,
+            license_type TEXT NOT NULL,
+            user_count INTEGER NOT NULL,
             amount INTEGER NOT NULL,
             status TEXT NOT NULL,
-            error_code TEXT,
-            response_time_ms INTEGER NOT NULL,
-            FOREIGN KEY (merchant_id) REFERENCES merchants(merchant_id)
+            loss_reason TEXT,
+            deployment_days INTEGER NOT NULL,
+            sales_rep TEXT NOT NULL,
+            FOREIGN KEY (client_id) REFERENCES clients(client_id)
         )
         """
     )
 
-    categories = [
-        "F&B",
-        "Retail",
-        "E-Commerce",
-        "Travel",
-        "Utilities",
-        "Digital Services",
-    ]
-    cities = ["Jakarta", "Surabaya", "Bandung", "Medan", "Semarang", "Makassar", "Denpasar"]
-    tiers = ["Enterprise", "Mid-Market", "SMB"]
+    # Backward-compatibility views so queries using older names continue to work
+    cur.execute(
+        """
+        CREATE VIEW transactions AS
+        SELECT
+            order_id AS tx_id,
+            created_at,
+            order_date AS tx_date,
+            order_month AS tx_month,
+            client_id AS merchant_id,
+            product_line AS channel,
+            license_type AS payment_method,
+            sales_rep AS bank,
+            industry AS merchant_category,
+            amount,
+            status,
+            loss_reason AS error_code,
+            deployment_days AS response_time_ms
+        FROM sales_orders
+        """
+    )
+    cur.execute(
+        """
+        CREATE VIEW merchants AS
+        SELECT
+            client_id AS merchant_id,
+            name,
+            industry AS category,
+            city,
+            tier,
+            onboarded_at
+        FROM clients
+        """
+    )
 
-    merchants: list[tuple[str, str, str, str, str, str]] = []
-    for i in range(1, 121):
-        mid = f"M{i:04d}"
-        cat = categories[(i - 1) % len(categories)]
+    industries = [
+        "Manufacturing",
+        "Plantation & Agro",
+        "Education",
+        "Healthcare",
+        "Financial Services",
+        "Retail & Distribution",
+        "Gov & BUMD",
+        "Mining & Energy",
+    ]
+    cities = ["Jakarta", "Surabaya", "Bandung", "Medan", "Balikpapan", "Semarang", "Makassar"]
+    account_managers = ["Budi Santoso", "Dewi Lestari", "Rian Hidayat", "Siti Rahma", "Agus Setiawan"]
+
+    company_prefixes = {
+        "Manufacturing": ["PT Indo Manufaktur", "PT Sinar Baja Mandiri", "PT Presisi Logam Nusantara", "PT Rejoso Indo Pack"],
+        "Plantation & Agro": ["PT Nusantara Agro Lestari", "PT Rejoso Manis Indo", "PT Sawit Mas Sejahtera", "PT Tani Jaya Abadi"],
+        "Education": ["Yayasan Pendidikan Cendekia", "Universitas Bina Informatika", "Institut Teknologi Mandiri", "Sekolah Terpadu Nusantara"],
+        "Healthcare": ["RS Medika Utama", "Klinik Sehat Terpadu", "RS Graha Kasih Sejahtera", "Lab Diagnostik Utama"],
+        "Financial Services": ["BPR Dana Ventura", "KSP Makmur Bersama", "PT Multifinance Berkah", "Asuransi Terpadu Nusantara"],
+        "Retail & Distribution": ["PT Retail Mega Niaga", "Distrindo Logistik Cepat", "PT Sumber Pangan Retail", "PT Mitra Niaga Terpadu"],
+        "Gov & BUMD": ["Perumda Air Minum Sejahtera", "PT Penjaminan Daerah Mandiri", "BUMD Aneka Sarana", "Badan Layanan Umum Daerah Cendekia"],
+        "Mining & Energy": ["PT Mineral Energi Utama", "PT Bumi Tambang Perkasa", "Nusantara Geo Resources", "PT Daya Mineral Abadi"],
+    }
+
+    clients: list[tuple[str, str, str, str, str, str, str]] = []
+    for i in range(1, 151):
+        cid = f"C{i:04d}"
+        ind = industries[(i - 1) % len(industries)]
+        pref = company_prefixes[ind][(i // len(industries)) % len(company_prefixes[ind])]
+        cname = f"{pref} {i:03d}"
         city = cities[(i * 3) % len(cities)]
-        tier = "Enterprise" if i <= 20 else ("Mid-Market" if i <= 65 else "SMB")
-        onboard_days_ago = rng.randint(180, 900)
+        tier = "Enterprise" if i <= 30 else ("Mid-Market" if i <= 95 else "SMB")
+        am = account_managers[i % len(account_managers)]
+        onboard_days_ago = rng.randint(180, 950)
         onboard_date = (date(2026, 5, 1) - timedelta(days=onboard_days_ago)).isoformat()
-        mname = f"{cat.replace(' ', '')} Partner {i:03d}"
-        merchants.append((mid, mname, cat, city, tier, onboard_date))
+        clients.append((cid, cname, ind, city, tier, am, onboard_date))
 
-    cur.executemany(
-        "INSERT INTO merchants VALUES (?, ?, ?, ?, ?, ?)",
-        merchants,
-    )
+    cur.executemany("INSERT INTO clients VALUES (?, ?, ?, ?, ?, ?, ?)", clients)
 
-    channels_methods = {
-        "QRIS": ["QRIS Dynamic", "QRIS Static"],
-        "Mobile App": ["In-App Wallet", "One-Click Card", "Mobile VA"],
-        "Web": ["Web Checkout Card", "Web Direct Debit"],
-        "Virtual Account": ["VA Transfer", "VA Closed Amount"],
-        "API Partner": ["Host-to-Host API", "Direct Disbursement API"],
-    }
-    banks = [
-        "Bank Nusantara",
-        "Bank Mandiri Jaya",
-        "Bank Sentral Niaga",
-        "Bank Prima Digital",
-        "WalletPay Gateway",
+    # 6 months of daily orders / subscriptions: 2026-05-01 to 2026-10-31
+    start_date = date(2026, 5, 1)
+    end_date = date(2026, 10, 31)
+    total_days = (end_date - start_date).days + 1
+
+    product_lines = [
+        "JustClick HCMS",
+        "JustClick eFinance",
+        "JustClick CRM",
+        "JustClick Sales & POS",
+        "JustClick SMART",
+        "ERP Custom Implementation",
+        "IT Staff Augmentation",
+        "Corporate Training",
     ]
 
-    # Amount range by category
-    amount_ranges = {
-        "F&B": (25_000, 350_000),
-        "Retail": (50_000, 1_200_000),
-        "E-Commerce": (45_000, 2_500_000),
-        "Travel": (350_000, 6_500_000),
-        "Utilities": (75_000, 950_000),
-        "Digital Services": (20_000, 500_000),
+    base_prices = {
+        "JustClick HCMS": (45_000, 180_000),             # per user/month, e.g. 50-300 users
+        "JustClick eFinance": (35_000, 150_000),
+        "JustClick CRM": (25_000, 90_000),
+        "JustClick Sales & POS": (30_000, 120_000),
+        "JustClick SMART": (20_000, 80_000),
+        "ERP Custom Implementation": (150_000_000, 450_000_000),  # project lump sum
+        "IT Staff Augmentation": (25_000_000, 65_000_000),         # monthly per staff
+        "Corporate Training": (12_000_000, 45_000_000),           # per workshop
     }
 
-    # Base daily volume per month (May to Oct 2026)
-    month_daily_base = {
-        5: 460,
-        6: 485,
-        7: 510,
-        8: 525,
-        9: 555,
-        10: 580,
-    }
+    orders: list[tuple[str, str, str, str, str, str, str, str, str, int, int, str, str | None, int, str]] = []
+    order_seq = 1
 
-    # Channel weights by month (QRIS grows steadily)
-    channel_weights_by_month = {
-        5: [("QRIS", 0.24), ("Mobile App", 0.25), ("Web", 0.16), ("Virtual Account", 0.19), ("API Partner", 0.16)],
-        6: [("QRIS", 0.25), ("Mobile App", 0.25), ("Web", 0.15), ("Virtual Account", 0.19), ("API Partner", 0.16)],
-        7: [("QRIS", 0.27), ("Mobile App", 0.24), ("Web", 0.15), ("Virtual Account", 0.18), ("API Partner", 0.16)],
-        8: [("QRIS", 0.28), ("Mobile App", 0.24), ("Web", 0.14), ("Virtual Account", 0.18), ("API Partner", 0.16)],
-        9: [("QRIS", 0.29), ("Mobile App", 0.23), ("Web", 0.14), ("Virtual Account", 0.18), ("API Partner", 0.16)],
-        10: [("QRIS", 0.30), ("Mobile App", 0.22), ("Web", 0.13), ("Virtual Account", 0.18), ("API Partner", 0.17)],
-    }
+    for day_offset in range(total_days):
+        current_day = start_date + timedelta(days=day_offset)
+        iso_date = current_day.isoformat()
+        month_str = iso_date[:7]
+        day_of_month = current_day.day
+        is_weekend = current_day.weekday() >= 5
 
-    # Category weights by month (F&B & Digital Services grow in Sep-Oct; Travel peaks in Jun-Jul then drops in Aug-Oct)
-    cat_weights_by_month = {
-        5: [("F&B", 0.22), ("E-Commerce", 0.24), ("Retail", 0.18), ("Travel", 0.14), ("Utilities", 0.11), ("Digital Services", 0.11)],
-        6: [("F&B", 0.22), ("E-Commerce", 0.23), ("Retail", 0.17), ("Travel", 0.17), ("Utilities", 0.10), ("Digital Services", 0.11)],
-        7: [("F&B", 0.22), ("E-Commerce", 0.23), ("Retail", 0.17), ("Travel", 0.18), ("Utilities", 0.10), ("Digital Services", 0.10)],
-        8: [("F&B", 0.24), ("E-Commerce", 0.25), ("Retail", 0.18), ("Travel", 0.11), ("Utilities", 0.10), ("Digital Services", 0.12)],
-        9: [("F&B", 0.27), ("E-Commerce", 0.25), ("Retail", 0.17), ("Travel", 0.09), ("Utilities", 0.10), ("Digital Services", 0.12)],
-        10: [("F&B", 0.29), ("E-Commerce", 0.25), ("Retail", 0.17), ("Travel", 0.07), ("Utilities", 0.09), ("Digital Services", 0.13)],
-    }
+        # Volume deals per day: 60 - 110 transactions/orders per day
+        daily_count = rng.randint(45, 75) if is_weekend else rng.randint(85, 130)
 
-    merchants_by_cat: dict[str, list[tuple[str, str, str, str, str, str]]] = {}
-    for m in merchants:
-        merchants_by_cat.setdefault(m[2], []).append(m)
+        # Planted October anomaly starting Oct 12, 2026:
+        # In Oct 2026 (>= Oct 12), JustClick HCMS in Manufacturing experiences severe churn & delays
+        in_oct_anomaly = (month_str == "2026-10" and day_of_month >= 12)
 
-    normal_errors = [
-        ("ERR_INSUFFICIENT_FUNDS", 0.42),
-        ("ERR_INVALID_OTP", 0.26),
-        ("ERR_LIMIT_EXCEEDED", 0.16),
-        ("ERR_GW_TIMEOUT_504", 0.10),
-        ("ERR_BANK_DOWN", 0.06),
-    ]
+        for _ in range(daily_count):
+            oid = f"SO2026{order_seq:06d}"
+            order_seq += 1
 
-    def pick_weighted(items_weights: list[tuple[str, float]]) -> str:
-        r = rng.random()
-        acc = 0.0
-        for item, w in items_weights:
-            acc += w
-            if r <= acc:
-                return item
-        return items_weights[-1][0]
+            client = rng.choice(clients)
+            cid, cname, c_ind, c_city, c_tier, c_am, _ = client
 
-    start_day = date(2026, 5, 1)
-    end_day = date(2026, 10, 31)
-    anomaly_start = date(2026, 10, 12)
-
-    tx_rows: list[tuple] = []
-    seq = 0
-    curr_day = start_day
-
-    while curr_day <= end_day:
-        m = curr_day.month
-        base_n = month_daily_base[m]
-        # Slight weekend bump
-        if curr_day.weekday() >= 4:
-            base_n = int(base_n * 1.08)
-        daily_n = base_n + rng.randint(-20, 20)
-
-        ch_weights = channel_weights_by_month[m]
-        cat_weights = cat_weights_by_month[m]
-        tx_date_str = curr_day.isoformat()
-        tx_month_str = curr_day.strftime("%Y-%m")
-
-        for _ in range(daily_n):
-            seq += 1
-            tx_id = f"TX{curr_day.strftime('%Y%m')}{seq:06d}"
-            hh = rng.randint(0, 23)
-            mm = rng.randint(0, 59)
-            ss = rng.randint(0, 59)
-            created_at = f"{tx_date_str} {hh:02d}:{mm:02d}:{ss:02d}"
-
-            channel = pick_weighted(ch_weights)
-            cat = pick_weighted(cat_weights)
-            m_tuple = rng.choice(merchants_by_cat[cat])
-            merchant_id = m_tuple[0]
-            payment_method = rng.choice(channels_methods[channel])
-
-            # Bank routing weights
-            if channel in ("API Partner", "Virtual Account"):
-                bank = pick_weighted(
-                    [
-                        ("Bank Nusantara", 0.48),
-                        ("Bank Mandiri Jaya", 0.20),
-                        ("Bank Sentral Niaga", 0.16),
-                        ("Bank Prima Digital", 0.10),
-                        ("WalletPay Gateway", 0.06),
-                    ]
-                )
+            # Product selection
+            if c_ind == "Education":
+                prod = rng.choices(product_lines, weights=[20, 20, 10, 5, 35, 5, 3, 2])[0]
+            elif c_ind == "Manufacturing":
+                prod = rng.choices(product_lines, weights=[40, 25, 10, 10, 0, 10, 3, 2])[0]
             else:
-                bank = pick_weighted(
-                    [
-                        ("Bank Nusantara", 0.22),
-                        ("Bank Mandiri Jaya", 0.25),
-                        ("Bank Sentral Niaga", 0.20),
-                        ("Bank Prima Digital", 0.15),
-                        ("WalletPay Gateway", 0.18),
-                    ]
-                )
+                prod = rng.choices(product_lines, weights=[25, 25, 15, 15, 5, 8, 4, 3])[0]
 
-            low_amt, high_amt = amount_ranges[cat]
-            amount = round(rng.randint(low_amt, high_amt), -2)
-
-            # Determine status, error_code, and response_time_ms
-            is_oct_anomaly_window = (
-                curr_day >= anomaly_start
-                and channel in ("API Partner", "Virtual Account")
-                and bank == "Bank Nusantara"
-            )
-
-            if is_oct_anomaly_window:
-                # High failure rate during Bank Nusantara gateway timeout issue
-                fail_prob = 0.34 if channel == "API Partner" else 0.29
-                pend_prob = 0.02
-                r_stat = rng.random()
-                if r_stat < fail_prob:
-                    status = "FAILED"
-                    if rng.random() < 0.88:
-                        error_code = "ERR_GW_TIMEOUT_504"
-                        response_time_ms = rng.randint(9400, 10050)
-                    else:
-                        error_code = pick_weighted(normal_errors)
-                        response_time_ms = rng.randint(1200, 3500)
-                elif r_stat < fail_prob + pend_prob:
-                    status = "PENDING"
-                    error_code = None
-                    response_time_ms = rng.randint(3500, 7500)
-                else:
-                    status = "SUCCESS"
-                    error_code = None
-                    response_time_ms = rng.randint(1100, 3800)
+            # License type
+            if prod in ("ERP Custom Implementation", "Corporate Training"):
+                lic_type = "Professional Services"
+                user_cnt = rng.randint(10, 50)
+                amount = rng.randint(base_prices[prod][0], base_prices[prod][1])
+            elif prod == "IT Staff Augmentation":
+                lic_type = "SaaS Monthly"
+                user_cnt = rng.randint(1, 5)
+                amount = rng.randint(base_prices[prod][0], base_prices[prod][1]) * user_cnt
             else:
-                # Normal baseline operation (~3.1% failure rate)
-                fail_prob = 0.031
-                pend_prob = 0.009
-                r_stat = rng.random()
-                if r_stat < fail_prob:
-                    status = "FAILED"
-                    error_code = pick_weighted(normal_errors)
-                    if error_code == "ERR_GW_TIMEOUT_504":
-                        response_time_ms = rng.randint(4500, 8500)
-                    else:
-                        response_time_ms = rng.randint(320, 1100)
-                elif r_stat < fail_prob + pend_prob:
-                    status = "PENDING"
-                    error_code = None
-                    response_time_ms = rng.randint(600, 1800)
+                lic_type = rng.choices(["SaaS Monthly", "SaaS Annual", "On-Premise Perpetual"], weights=[60, 32, 8])[0]
+                user_cnt = rng.randint(15, 350)
+                price_per_user = rng.randint(base_prices[prod][0], base_prices[prod][1])
+                if lic_type == "SaaS Annual":
+                    amount = int(price_per_user * user_cnt * 12 * 0.85)  # 15% annual discount
+                elif lic_type == "On-Premise Perpetual":
+                    amount = int(price_per_user * user_cnt * 28)
                 else:
-                    status = "SUCCESS"
-                    error_code = None
-                    response_time_ms = rng.randint(180, 680)
+                    amount = price_per_user * user_cnt
 
-            tx_rows.append(
-                (
-                    tx_id,
-                    created_at,
-                    tx_date_str,
-                    tx_month_str,
-                    merchant_id,
-                    channel,
-                    payment_method,
-                    bank,
-                    cat,
-                    amount,
-                    status,
-                    error_code,
-                    response_time_ms,
-                )
-            )
+            sales_rep = rng.choice(account_managers)
 
-        curr_day += timedelta(days=1)
+            # Determine status & deployment duration
+            # Normal baseline: ~88% Active/Won/Renewed, 4% Pending, 4% Churned/Cancelled
+            if in_oct_anomaly and prod == "JustClick HCMS" and c_ind == "Manufacturing":
+                # High failure/churn rate for HCMS in Manufacturing in mid-late October!
+                status_roll = rng.random()
+                if status_roll < 0.38:
+                    status = "CHURNED"
+                    loss_reason = "ERR_PAYROLL_CUSTOM_DELAY"
+                    deploy_days = rng.randint(45, 75)
+                elif status_roll < 0.52:
+                    status = "CANCELLED"
+                    loss_reason = "ERR_PAYROLL_CUSTOM_DELAY"
+                    deploy_days = rng.randint(40, 65)
+                elif status_roll < 0.65:
+                    status = "PENDING_PAYMENT"
+                    loss_reason = "DELAYED_GO_LIVE"
+                    deploy_days = rng.randint(35, 60)
+                else:
+                    status = rng.choice(["ACTIVE", "WON", "RENEWED"])
+                    loss_reason = None
+                    deploy_days = rng.randint(30, 55)
+            else:
+                # Normal operational distribution
+                status_roll = rng.random()
+                if status_roll < 0.72:
+                    status = "ACTIVE"
+                    loss_reason = None
+                    deploy_days = rng.randint(12, 28)
+                elif status_roll < 0.88:
+                    status = "WON" if rng.random() < 0.5 else "RENEWED"
+                    loss_reason = None
+                    deploy_days = rng.randint(10, 25)
+                elif status_roll < 0.94:
+                    status = "PENDING_PAYMENT"
+                    loss_reason = None
+                    deploy_days = rng.randint(15, 35)
+                else:
+                    status = "CHURNED" if rng.random() < 0.6 else "CANCELLED"
+                    loss_reason = rng.choice([
+                        "BUDGET_REALLOCATION",
+                        "COMPETITOR_PRICE",
+                        "INTERNAL_MANAGEMENT_CHANGE",
+                        "FEATURE_GAP_SPECIALIZED",
+                    ])
+                    deploy_days = rng.randint(20, 45)
+
+            # Random timestamp within the day
+            sec = rng.randint(28800, 68400)  # 08:00 - 19:00 WIB
+            h = sec // 3600
+            m = (sec % 3600) // 60
+            s = sec % 60
+            created_at = f"{iso_date} {h:02d}:{m:02d}:{s:02d}"
+
+            orders.append((
+                oid,
+                created_at,
+                iso_date,
+                month_str,
+                cid,
+                cname,
+                c_ind,
+                prod,
+                lic_type,
+                user_cnt,
+                amount,
+                status,
+                loss_reason,
+                deploy_days,
+                sales_rep,
+            ))
 
     cur.executemany(
-        "INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        tx_rows,
+        """
+        INSERT INTO sales_orders VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        orders,
     )
 
-    cur.execute("CREATE INDEX idx_tx_month ON transactions(tx_month)")
-    cur.execute("CREATE INDEX idx_tx_date ON transactions(tx_date)")
-    cur.execute("CREATE INDEX idx_tx_channel ON transactions(channel)")
-    cur.execute("CREATE INDEX idx_tx_status ON transactions(status)")
-    cur.execute("CREATE INDEX idx_tx_error ON transactions(error_code)")
-    cur.execute("CREATE INDEX idx_tx_bank ON transactions(bank)")
-    cur.execute("CREATE INDEX idx_tx_cat ON transactions(merchant_category)")
+    cur.execute("CREATE INDEX idx_so_month ON sales_orders(order_month)")
+    cur.execute("CREATE INDEX idx_so_date ON sales_orders(order_date)")
+    cur.execute("CREATE INDEX idx_so_prod ON sales_orders(product_line)")
+    cur.execute("CREATE INDEX idx_so_status ON sales_orders(status)")
+    cur.execute("CREATE INDEX idx_so_ind ON sales_orders(industry)")
+    cur.execute("CREATE INDEX idx_so_loss ON sales_orders(loss_reason)")
 
     conn.commit()
     conn.close()
-    print(f"[OK] Generated {len(tx_rows):,} transactions in {TRANSACTIONS_DB_PATH}")
+    print(f"[OK] Generated {len(orders):,} sales orders in {TRANSACTIONS_DB_PATH}")
 
 
-def _build_escalation_flowchart_png() -> bytes:
-    """Render a clean operational flowchart diagram for failed transaction handling."""
-    fig, ax = plt.subplots(figsize=(10, 6.2), dpi=160)
-    ax.set_xlim(0, 10)
-    ax.set_ylim(0, 6.5)
+def generate_diagram_bytes() -> bytes:
+    """Generate high-resolution architecture diagram of JustClick ERP modular ecosystem."""
+    fig, ax = plt.subplots(figsize=(10.5, 6.2), dpi=180)
+    ax.set_xlim(0, 11)
+    ax.set_ylim(0, 7.5)
     ax.axis("off")
 
-    fig.patch.set_facecolor("#FFFFFF")
-    ax.set_title(
-        "Diagram Alur Penanganan & Eskalasi Transaksi Gagal (SOP-OPS-04)",
-        fontsize=13,
+    # Title
+    ax.text(
+        5.5,
+        7.1,
+        "Arsitektur Modular & Alur Data Terintegrasi JustClick ERP (PT Neural Technologies Indonesia)",
+        ha="center",
+        va="center",
+        fontsize=11.5,
         fontweight="bold",
-        pad=12,
-        color="#111827",
+        color="#0F172A",
     )
 
     boxes = [
-        (3.6, 5.4, 2.8, 0.75, "Transaksi FAILED Terdeteksi\n(Alert Monitoring / Webhook)", "#EFF6FF", "#1D4ED8"),
-        (3.6, 4.1, 2.8, 0.75, "Klasifikasi Kode Error\n(Cek Kolom error_code & bank)", "#F9FAFB", "#374151"),
-        (0.4, 2.5, 2.6, 0.95, "ERR_GW_TIMEOUT_504 /\nERR_BANK_DOWN (Teknis)\n• Auto-Retry maks 2x (backoff)\n• Cek Status Callback Gateway", "#FEF2F2", "#B91C1C"),
-        (3.7, 2.5, 2.6, 0.95, "ERR_INSUFFICIENT_FUNDS /\nERR_LIMIT_EXCEEDED (Nasabah)\n• Dilarang Auto-Retry\n• Kirim Notifikasi Ganti Metode", "#FFFBEB", "#B45309"),
-        (7.0, 2.5, 2.6, 0.95, "ERR_INVALID_OTP\n(Autentikasi / Keamanan)\n• Minta Input Ulang OTP (maks 3x)\n• Cooldown 15 Menit jika Gagal", "#F0FDF4", "#15803D"),
-        (0.4, 0.7, 4.2, 1.0, "Eskalasi L2/L3 & Rekonsiliasi H+1\n• Jika Timeout > 5% di 1 Bank Gateway: P1 Incident\n• Reroute trafik ke Backup Gateway / Naikkan Timeout\n• Rekonsiliasi Settlement H+1 sebelum Refund", "#EFF6FF", "#1E40AF"),
-        (5.4, 0.7, 4.2, 1.0, "Penutupan Tiket & Komunikasi Merchant\n• Update Status di Dashboard Merchant\n• Catat di Log Insiden Operasional jika sistemik", "#F3F4F6", "#374151"),
+        # Center Core Database
+        (
+            3.8,
+            3.8,
+            3.4,
+            1.5,
+            "JustClick Core Database & Business Engine\n(Multi-Tenant Cloud SaaS / On-Premise)\n• Master Data Karyawan, Akun, & Pelanggan\n• Role-Based Access Control (RBAC) & Audit Trail",
+            "#EFF6FF",
+            "#1D4ED8",
+        ),
+        # Top Integration & External
+        (
+            3.8,
+            5.6,
+            3.4,
+            1.1,
+            "NTI Integration Gateway\n• Open API & Webhooks\n• Integrasi DJP e-Faktur & Payroll Bank",
+            "#F8FAFC",
+            "#475569",
+        ),
+        # Left HCMS
+        (
+            0.5,
+            3.8,
+            2.8,
+            1.5,
+            "JustClick HCMS\n(Human Capital Management)\n• Payroll Otomatis (PPh 21 TER, BPJS)\n• Multi-Shift Manufacturing Roster\n• Attendance Geofencing & Biometrik",
+            "#F0FDF4",
+            "#15803D",
+        ),
+        # Right eFinance
+        (
+            7.7,
+            3.8,
+            2.8,
+            1.5,
+            "JustClick eFinance\n(Financial & Accounting)\n• General Ledger & Multi-Currency\n• Jurnal Otomatis Gaji & Beban Operasional\n• Real-Time P&L & Cash Flow Reporting",
+            "#FEF3C7",
+            "#B45309",
+        ),
+        # Bottom Left CRM & Sales
+        (
+            0.8,
+            1.4,
+            3.0,
+            1.6,
+            "JustClick CRM & Sales Pipeline\n• Lead Scoring & Deal Tracking\n• Estimasi Quotation & Proposal B2B\n• Konversi Otomatis Menjadi Sales Order",
+            "#FDF2F8",
+            "#BE185D",
+        ),
+        # Bottom Center POS & Stock
+        (
+            4.2,
+            1.4,
+            2.6,
+            1.6,
+            "JustClick Sales & POS\n• Kasir Cloud & Offline Sync\n• Inventory Multi-Gudang\n• Replenishment Otomatis",
+            "#ECFDF5",
+            "#047857",
+        ),
+        # Bottom Right SMART (Education)
+        (
+            7.2,
+            1.4,
+            3.0,
+            1.6,
+            "JustClick SMART (Institusi Edukasi)\n• Registrasi Mahasiswa/Siswa\n• Billing SPP Terintegrasi Virtual Account\n• Nilai & Akademik Terpadu",
+            "#FAF5FF",
+            "#6B21A8",
+        ),
     ]
 
     for x, y, w, h, label, facecolor, edgecolor in boxes:
@@ -369,20 +435,24 @@ def _build_escalation_flowchart_png() -> bytes:
             label,
             ha="center",
             va="center",
-            fontsize=8.5,
-            color="#111827",
+            fontsize=8.2,
+            color="#0F172A",
             fontweight="medium",
         )
 
-    arrow_style = dict(arrowstyle="->", color="#4B5563", lw=1.5)
-    # Arrows
-    ax.annotate("", xy=(5.0, 4.85), xytext=(5.0, 5.4), arrowprops=arrow_style)
-    ax.annotate("", xy=(1.7, 3.45), xytext=(4.2, 4.1), arrowprops=arrow_style)
-    ax.annotate("", xy=(5.0, 3.45), xytext=(5.0, 4.1), arrowprops=arrow_style)
-    ax.annotate("", xy=(8.3, 3.45), xytext=(5.8, 4.1), arrowprops=arrow_style)
-    ax.annotate("", xy=(2.1, 1.7), xytext=(1.7, 2.5), arrowprops=arrow_style)
-    ax.annotate("", xy=(7.0, 1.7), xytext=(5.0, 2.5), arrowprops=arrow_style)
-    ax.annotate("", xy=(8.1, 1.7), xytext=(8.3, 2.5), arrowprops=arrow_style)
+    arrow_style = dict(arrowstyle="<->", color="#334155", lw=1.5)
+    # Connect Core to Top Gateway
+    ax.annotate("", xy=(5.5, 5.3), xytext=(5.5, 5.6), arrowprops=arrow_style)
+    # Connect HCMS to Core
+    ax.annotate("", xy=(3.3, 4.55), xytext=(3.8, 4.55), arrowprops=arrow_style)
+    # Connect eFinance to Core
+    ax.annotate("", xy=(7.2, 4.55), xytext=(7.7, 4.55), arrowprops=arrow_style)
+    # Connect CRM to Core
+    ax.annotate("", xy=(2.3, 3.0), xytext=(4.3, 3.8), arrowprops=arrow_style)
+    # Connect POS to Core
+    ax.annotate("", xy=(5.5, 3.0), xytext=(5.5, 3.8), arrowprops=arrow_style)
+    # Connect SMART to Core
+    ax.annotate("", xy=(8.7, 3.0), xytext=(6.7, 3.8), arrowprops=arrow_style)
 
     buf = io.BytesIO()
     fig.savefig(buf, format="png", bbox_inches="tight")
@@ -391,320 +461,246 @@ def _build_escalation_flowchart_png() -> bytes:
 
 
 def generate_seed_documents() -> None:
-    """Create the 3 Knowledge Base seed documents (8-page PDF with diagram, DOCX incident report, TXT policy)."""
+    """Create Knowledge Base seed documents for PT Neural Technologies Indonesia (NTI)."""
     SEED_DOCS_DIR.mkdir(parents=True, exist_ok=True)
+    SAMPLE_FILES_DIR.mkdir(parents=True, exist_ok=True)
 
-    # 1. SOP_Penanganan_Transaksi_Gagal.pdf (8 pages with embedded diagram on page 4)
-    pdf_path = SEED_DOCS_DIR / "SOP_Penanganan_Transaksi_Gagal.pdf"
+    # 1. Katalog_Produk_dan_Solusi_NTI.pdf (8 pages with architecture diagram on page 4)
+    pdf_path = SEED_DOCS_DIR / "Katalog_Produk_dan_Solusi_NTI.pdf"
     pdf = fitz.open()
 
     pages_content = [
         (
-            "DOKUMEN STANDAR OPERASIONAL PROSEDUR (SOP-OPS-04)\n"
-            "PENANGANAN TRANSAKSI GAGAL DAN ESKALASI GATEWAY PEMBAYARAN\n\n"
-            "1. TUJUAN DAN RUANG LINGKUP\n"
-            "Dokumen ini menetapkan prosedur standar bagi Tim Operasional Pembayaran (Payment Operations), "
-            "Customer Support Merchant, dan Site Reliability Engineering (SRE) dalam menangani transaksi berstatus "
-            "FAILED maupun PENDING yang melampaui ambang SLA pada seluruh kanal pembayaran (QRIS, Mobile App, Web, "
-            "Virtual Account, dan API Partner).\n\n"
-            "2. INDIKATOR KINERJA UTAMA (SLA OPERASIONAL)\n"
-            "- Target Tingkat Keberhasilan Transaksi (Success Rate) Global: >= 95.5%\n"
-            "- Batas Ambang Normal Kegagalan (Failure Rate Baseline): <= 3.5%\n"
-            "- Ambang Peringatan Dini (Warning Threshold): Failure Rate > 5.0% pada satu kanal selama 30 menit\n"
-            "- Ambang Insiden Kritis (P1 Major Incident): Failure Rate > 10.0% pada kanal utama atau waktu respons "
-            "rata-rata (response_time_ms) melampaui 5.000 ms."
+            "KATALOG RESMI PRODUK DAN SOLUSI TEKNOLOGI INFORMASI\n"
+            "PT NEURAL TECHNOLOGIES INDONESIA (NTI)\n"
+            "Dokumen Ref: NTI-CAT-2026-V2 | Edisi Revisi Terpadu\n\n"
+            "1. TENTANG PERUSAHAAN\n"
+            "PT Neural Technologies Indonesia (NTI) adalah perusahaan konsultan teknologi informasi dan penyedia sistem "
+            "Enterprise Resource Planning (ERP) terintegrasi yang berkantor pusat di SOHO Pancoran - Splendor 1503, "
+            "Jl. M.T. Haryono Kav. 2-3, Jakarta Selatan.\n\n"
+            "NTI berfokus mendampingi korporasi besar, Badan Usaha Milik Daerah (BUMD), serta perusahaan berkembang dalam "
+            "melakukan transformasi digital menyeluruh melalui automasi proses bisnis, integrasi lintas divisi, dan peningkatan efisiensi operasional.\n\n"
+            "2. EMPAT PILAR LAYANAN UTAMA NTI\n"
+            "A. JustClick ERP Suite: Solusi software bisnis all-in-one modular mencakup HCMS, eFinance, CRM, POS, dan SMART.\n"
+            "B. IT Consulting & Custom Implementation: Perancangan IT roadmap strategis, kustomisasi Odoo ERP, dan integrasi API enterprise.\n"
+            "C. IT Manpower Supply: Penyediaan tenaga ahli profesional (ERP Consultant, Fullstack Developer, Data Engineer, DevOps, QA).\n"
+            "D. People Development & Training: Program pelatihan korporat NTI Academy untuk adopsi teknologi dan manajemen proses bisnis."
         ),
         (
-            "3. KLASIFIKASI PENYEBAB UMUM KEGAGALAN TRANSAKSI\n\n"
-            "Berdasarkan analisis historis sistem payment gateway perusahaan, penyebab kegagalan transaksi dibagi "
-            "menjadi tiga kelompok utama:\n\n"
-            "A. Kegagalan Sisi Nasabah / Pemegang Akun (User-Side Failures)\n"
-            "1) ERR_INSUFFICIENT_FUNDS: Saldo rekening, e-wallet, atau limit kartu nasabah tidak mencukupi untuk "
-            "memenuhi nominal transaksi. Merupakan penyebab kegagalan harian paling umum pada kondisi operasional normal (~40-45% dari total gagal normal).\n"
-            "2) ERR_LIMIT_EXCEEDED: Transaksi melampaui batas maksimal nominal harian atau frekuensi transaksi per hari "
-            "yang ditetapkan oleh bank penerbit.\n\n"
-            "B. Kegagalan Autentikasi & Keamanan (Authentication Failures)\n"
-            "3) ERR_INVALID_OTP: Nasabah salah memasukkan kode One-Time Password (OTP) atau PIN melampaui batas waktu "
-            "validitas (3 menit).\n\n"
-            "C. Kegagalan Teknis Infrastruktur & Bank Gateway (System/Gateway Failures)\n"
-            "4) ERR_GW_TIMEOUT_504: Gateway pembayaran tidak menerima respons dari sistem core bank mitra dalam batas "
-            "waktu baca (read timeout). Sering dipicu oleh lonjakan latensi jaringan, perubahan konfigurasi timeout pada API bank mitra, "
-            "atau antrean proses pada kanal integrasi langsung seperti API Partner dan Virtual Account.\n"
-            "5) ERR_BANK_DOWN: Sistem bank mitra sedang mengalami gangguan penuh atau pemeliharaan terjadwal (scheduled maintenance)."
+            "3. LINI PRODUK FLAGSHIP: JUSTCLICK ERP\n\n"
+            "JustClick ERP dirancang dengan pendekatan modular fleksibel sehingga perusahaan dapat mengadopsi modul yang dibutuhkan terlebih dahulu "
+            "dan menambahkan modul lanjutan seiring pertumbuhan bisnis tanpa perlu mengganti sistem pondasi.\n\n"
+            "A. JustClick HCMS (Human Capital Management System)\n"
+            "   - Penggajian Otomatis (Payroll): Mendukung skema PPh 21 TER (Tarif Efektif Rata-rata), iuran BPJS Ketenagakerjaan & Kesehatan.\n"
+            "   - Multi-Shift Roster: Pengaturan jadwal shift kerja kompleks 24/7 untuk industri manufaktur, perkebunan, dan rumah sakit.\n"
+            "   - Attendance & ESS: Presensi biometrik fingerprint, face recognition, dan geofencing mobile app bagi pekerja lapangan.\n"
+            "   - Manajemen Kinerja & KPI: Pelacakan OKR/KPI berkala serta kalkulasi bonus performa otomatis.\n\n"
+            "B. JustClick eFinance (Accounting & Financial Management)\n"
+            "   - Buku Besar Terpadu (General Ledger): Jurnal otomatis yang terhubung langsung ke transaksi penjualan, payroll, dan inventori.\n"
+            "   - Manajemen Arus Kas & Rekonsiliasi Bank: Integrasi rekening koran dan pemantauan piutang (AR) serta utang usaha (AP).\n"
+            "   - Laporan Finansial Real-Time: Neraca, Laba Rugi, dan Arus Kas konsolidasi multi-cabang."
         ),
         (
-            "4. PERBEDAAN PROSEDUR PENANGANAN UNTUK SETIAP JENIS KEGAGALAN\n\n"
-            "Setiap kode error memiliki karakteristik risiko yang berbeda (terutama risiko double-charge / pendebitan ganda), "
-            "sehingga prosedur penanganannya TIDAK BOLEH disamakan:\n\n"
-            "1) Prosedur untuk ERR_GW_TIMEOUT_504 (Gateway Timeout)\n"
-            "   - Sifat: Status akhir di sisi bank mitra belum pasti (bisa sebenarnya sukses terdebet di bank namun respons terputus).\n"
-            "   - Tindakan Sistem: Jalankan Inquiry Status API ke bank mitra terlebih dahulu. Auto-retry hanya boleh dilakukan maksimal "
-            "2 kali menggunakan idempotency key yang sama dengan jeda exponential backoff (2 detik, lalu 5 detik).\n"
-            "   - Larangan: Dilarang melakukan refund instan sebelum hasil Inquiry Status atau Rekonsiliasi Settlement H+1 memastikan dana mengendap.\n"
-            "   - Tindakan Infrastruktur: Jika ERR_GW_TIMEOUT_504 meningkat drastis pada bank tertentu, tim SRE wajib memeriksa konfigurasi "
-            "batas timeout koneksi (pastikan minimal 30 detik untuk endpoint sinkron) dan mengaktifkan rerouting ke jalur gateway cadangan.\n\n"
-            "2) Prosedur untuk ERR_BANK_DOWN (Gangguan Bank Mitra)\n"
-            "   - Sifat: Koneksi ditolak langsung oleh bank mitra (HTTP 502/503).\n"
-            "   - Tindakan: Aktifkan fitur Circuit Breaker otomatis untuk mengalihkan trafik ke bank/acquirer sekunder atau tampilkan banner "
-            "pemeliharaan pada halaman pembayaran untuk metode bank terkait."
+            "4. MODUL BISNIS LAINNYA DALAM JUSTCLICK ECOSYSTEM\n\n"
+            "C. JustClick CRM & Sales Pipeline\n"
+            "   - Pemantauan alur penjualan prospek B2B dari tahap Lead, Quotation, Negosiasi, hingga Closed Won.\n"
+            "   - Integrasi langsung dengan modul eFinance saat deal disepakati untuk penerbitan Invoice otomatis.\n\n"
+            "D. JustClick Sales & POS (Point of Sales)\n"
+            "   - Software kasir modern untuk ritel, F&B, dan distributor dengan sinkronisasi online/offline.\n"
+            "   - Manajemen persediaan multi-gudang (multi-warehouse) dengan peringatan stok kritis otomatis.\n\n"
+            "E. JustClick SMART (Sistem Manajemen Sekolah & Perguruan Tinggi)\n"
+            "   - Sistem terintegrasi untuk pendaftaran siswa/mahasiswa baru (PPDB/PMB), tagihan SPP berkala, dan kartu rencana studi.\n\n"
+            "F. JustClick HSE (Health, Safety, and Environment)\n"
+            "   - Pencatatan insiden K3, sertifikasi kepatuhan keselamatan kerja, dan audit berkala untuk industri manufaktur dan tambang."
         ),
         (
-            "5. DIAGRAM ALUR PENANGANAN DAN ESKALASI TRANSAKSI GAGAL\n\n"
-            "Berikut adalah diagram alur resmi pengambilan keputusan operasional berdasarkan klasifikasi kode error "
-            "dan ambang batas eskalasi insiden:"
+            "5. ARSITEKTUR INTEGRASI MODULAR JUSTCLICK ERP\n\n"
+            "Berikut adalah diagram arsitektur keterhubungan modul dan pertukaran data secara terpusat pada platform JustClick ERP:"
         ),
         (
-            "6. PROSEDUR PENANGANAN KEGAGALAN SISI NASABAH & AUTENTIKASI\n\n"
-            "3) Prosedur untuk ERR_INSUFFICIENT_FUNDS (Saldo Tidak Cukup)\n"
-            "   - Sifat: Penolakan tegas (hard decline) dari bank penerbit.\n"
-            "   - Tindakan: DILARANG melakukan auto-retry sistem karena akan membebani kuota API bank dan pasti ditolak kembali. "
-            "Tampilkan pesan ramah kepada pengguna untuk melakukan top-up saldo atau memilih metode pembayaran alternatif (mis. pindah ke QRIS atau Virtual Account lain).\n\n"
-            "4) Prosedur untuk ERR_LIMIT_EXCEEDED (Melebihi Limit Harian)\n"
-            "   - Sifat: Penolakan kebijakan limit bank penerbit.\n"
-            "   - Tindakan: Dilarang auto-retry. Sarankan pengguna memecah pembayaran (split bill jika didukung merchant) atau menggunakan kanal "
-            "Virtual Account / kartu bank lain.\n\n"
-            "5) Prosedur untuk ERR_INVALID_OTP (Kesalahan OTP)\n"
-            "   - Sifat: Kegagalan verifikasi pengguna.\n"
-            "   - Tindakan: Izinkan pengiriman ulang (resend OTP) maksimal 3 kali dalam jendela 10 menit. Jika gagal 3 kali berturut-turut, "
-            "bekukan sementara sesi transaksi selama 15 menit untuk mencegah serangan brute-force dan arahkan ke tim Fraud Risk jika mencurigakan."
+            "6. MODEL LISENSI DAN DEPLOYMENT\n\n"
+            "NTI menyediakan fleksibilitas skema lisensi yang dapat disesuaikan dengan infrastruktur dan anggaran klien:\n\n"
+            "1. Cloud SaaS Subscription (Bulanan / Tahunan)\n"
+            "   - Di-host pada server cloud terkelola NTI dengan jaminan uptime 99.8%.\n"
+            "   - Pembaruan sistem dan backup data harian otomatis tanpa biaya pemeliharaan tambahan.\n"
+            "   - Minimum kontrak tahunan mendapatkan potongan harga khusus sebesar 15%.\n\n"
+            "2. On-Premise Perpetual License (Private Server)\n"
+            "   - Lisensi permanen yang diinstal pada infrastruktur server lokal atau private cloud klien.\n"
+            "   - Cocok untuk institusi dengan kebijakan kedaulatan data ketat (BUMD, perbankan, dan manufaktur strategis).\n"
+            "   - Termasuk garansi pemeliharaan software (SLA Maintenance) selama 12 bulan pertama."
         ),
         (
-            "7. MATRIKS ESKALASI INSIDEN OPERASIONAL\n\n"
-            "| Level | Kondisi Pemicu | Target Respons | Tim Penanggung Jawab | Tindakan Utama |\n"
-            "|---|---|---|---|---|\n"
-            "| L1 (Normal) | Failure rate < 3.5%, error didominasi ERR_INSUFFICIENT_FUNDS | 4 Jam | L1 Payment Ops | Monitoring rutin & laporan harian |\n"
-            "| L2 (Warning) | Failure rate 5% - 10% pada 1 kanal/bank selama >= 15 menit | 30 Menit | L2 Ops & Integration Engineer | Cek latensi gateway, hubungi PIC teknis bank mitra |\n"
-            "| L3 (Critical P1) | Failure rate > 10% atau lonjakan ERR_GW_TIMEOUT_504 masif | 10 Menit | SRE Lead, Head of Payment, Bank PIC | Rollback/naikkan timeout, throttle rate-limit, reroute gateway |\n\n"
-            "Catatan Penting untuk Kanal API Partner & Virtual Account:\n"
-            "Kanal API Partner dan Virtual Account sering digunakan oleh merchant Enterprise dengan trafik burst tinggi. "
-            "Apabila terjadi perubahan parameter timeout atau rate-limit pada sisi bank gateway, kedua kanal ini akan menjadi "
-            "kanal pertama yang mengalami lonjakan ERR_GW_TIMEOUT_504."
+            "7. LAYANAN KONSULTASI DAN MANPOWER SUPPLY\n\n"
+            "A. IT Staff Augmentation / Manpower Supply\n"
+            "   - Penyediaan tenaga profesional siap pakai dengan durasi kontrak fleksibel (3, 6, atau 12 bulan).\n"
+            "   - Kualifikasi: Senior ERP Functional Consultant, Fullstack Python/Odoo Developer, Data Analyst/BI Specialist.\n"
+            "   - Jaminan penggantian talenta dalam waktu 7 hari kerja jika terdapat ketidaksesuaian kualifikasi teknis.\n\n"
+            "B. NTI Academy Corporate Training\n"
+            "   - Paket pelatihan in-house untuk transfer knowledge dan percepatan adopsi sistem oleh end-user.\n"
+            "   - Modul pelatihan: Administrasi Payroll JustClick HCMS, Akuntansi Keuangan eFinance, dan Data Analytics SQL."
         ),
         (
-            "8. PROSEDUR REKONSILIASI H+1 DAN PENANGANAN SUSPECT / PENDING\n\n"
-            "1. Setiap pukul 06:00 WIB (H+1), sistem Settlement melakukan pencocokan otomatis antara tabel `transactions` "
-            "internal dengan file laporan mutasi (MT940 / CSV Settlement) dari masing-masing bank mitra.\n"
-            "2. Apabila ditemukan transaksi berstatus FAILED dengan kode `ERR_GW_TIMEOUT_504` namun dana tercatat berhasil "
-            "terdebet di laporan bank mitra:\n"
-            "   a) Untuk kanal Virtual Account & QRIS: Sistem melakukan pembaruan status menjadi SUCCESS (force-settlement) "
-            "dan mengirimkan callback notifikasi lanjutan ke merchant.\n"
-            "   b) Jika pesanan di sisi merchant sudah kadaluarsa, dana dimasukkan ke antrean Auto-Refund H+1 ke rekening nasabah.\n"
-            "3. Seluruh selisih rekonsiliasi wajib diselesaikan maksimal dalam 2x24 jam kerja."
+            "8. PENERAPAN DI BERBAGAI SEKTOR INDUSTRI\n\n"
+            "Solusi NTI telah dipercaya oleh lebih dari 150 klien di berbagai bidang:\n"
+            "- Sektor Manufaktur & Industri Berat: Automasi shift kerja ribuan buruh pabrik dan kalkulasi lembur lintas hari.\n"
+            "- Sektor Perkebunan & Agroindustri: Pemantauan mandor kebun, timbangan panen, dan distribusi logistik.\n"
+            "- Sektor Pendidikan & Yayasan: Manajemen administrasi ribuan siswa dan rekonsiliasi SPP perbankan.\n"
+            "- Sektor Kesehatan: Manajemen SDM tenaga medis, jadwal dokter, dan billing farmasi.\n"
+            "- Sektor Jasa Keuangan & BUMD: Tata kelola kepatuhan regulasi finansial dan transparansi laporan anggaran."
         ),
         (
-            "9. DAFTAR KONTAK ESKALASI DAN RIWAYAT REVISI DOKUMEN\n\n"
-            "- Desk Operasional 24/7: ops-payment@perusahaan.co.id (Ext. 4100)\n"
-            "- Tim SRE & Gateway Infrastructure: sre-oncall@perusahaan.co.id (Ext. 4200)\n"
-            "- Eskalasi Mitra Bank Nusantara: noc-gateway@banknusantara.co.id\n"
-            "- Eskalasi Mitra Bank Mandiri Jaya: support-api@mandirijaya.co.id\n\n"
-            "Riwayat Revisi:\n"
-            "- Versi 4.0 (Januari 2026): Penambahan prosedur QRIS Dynamic.\n"
-            "- Versi 4.2 (September 2026): Pembaruan aturan idempotency retry untuk ERR_GW_TIMEOUT_504 pada kanal API Partner dan Virtual Account."
+            "9. INFORMASI KONTAK DAN KEMITRAAN\n\n"
+            "PT NEURAL TECHNOLOGIES INDONESIA\n"
+            "SOHO Pancoran - Splendor 1503\n"
+            "Jl. M.T. Haryono Kav. 2-3, Pancoran, Jakarta Selatan 12810\n"
+            "Website: https://nti.co.id | https://justclick.id\n"
+            "Email: sales@nti.co.id | info@nti.co.id\n"
+            "Layanan Bantuan: Customer Helpdesk & Always On Support"
         ),
     ]
 
-    flowchart_png = _build_escalation_flowchart_png()
-
-    for idx, text_body in enumerate(pages_content, start=1):
+    for page_idx, text in enumerate(pages_content):
         page = pdf.new_page(width=595, height=842)  # A4
-        header = f"SOP-OPS-04: Penanganan Transaksi Gagal | Halaman {idx} dari {len(pages_content)}"
-        page.insert_text((45, 36), header, fontsize=8.5, color=(0.4, 0.4, 0.4))
-        rect = fitz.Rect(45, 58, 550, 780)
-        page.insert_textbox(rect, text_body, fontsize=10.5, color=(0.08, 0.08, 0.08))
+        rect = fitz.Rect(50, 50, 545, 792)
+        page.insert_textbox(rect, text, fontsize=10.5, fontname="helv", lineheight=1.4)
 
-        if idx == 4:
-            # Embed flowchart image below the intro text on page 4
-            img_rect = fitz.Rect(45, 160, 550, 520)
-            page.insert_image(img_rect, stream=flowchart_png)
-            caption = (
-                "Gambar 4.1: Diagram Alur Klasifikasi Error (ERR_GW_TIMEOUT_504, ERR_INSUFFICIENT_FUNDS, "
-                "ERR_INVALID_OTP) dan Eskalasi Rekonsiliasi H+1."
+        if page_idx == 3:  # Insert architecture diagram on page 4
+            diagram_bytes = generate_diagram_bytes()
+            img_rect = fitz.Rect(50, 200, 545, 520)
+            page.insert_image(img_rect, stream=diagram_bytes)
+            caption_rect = fitz.Rect(50, 530, 545, 560)
+            page.insert_textbox(
+                caption_rect,
+                "Gambar 1: Diagram Arsitektur Modular dan Alur Sinkronisasi Data JustClick ERP Suite.",
+                fontsize=9,
+                fontname="helv",
             )
-            page.insert_textbox(fitz.Rect(45, 530, 550, 580), caption, fontsize=9, color=(0.25, 0.25, 0.25))
 
     pdf.save(str(pdf_path))
     pdf.close()
-    print(f"[OK] Generated 8-page PDF with diagram: {pdf_path}")
+    print(f"[OK] Generated {pdf_path}")
 
-    # 2. Laporan_Insiden_Oktober_2026.docx
-    docx_path = SEED_DOCS_DIR / "Laporan_Insiden_Oktober_2026.docx"
+    # 2. Laporan_Investigasi_Insiden_Implementasi_Q4_2026.docx
+    docx_path = SEED_DOCS_DIR / "Laporan_Investigasi_Insiden_Implementasi_Q4_2026.docx"
     doc = DocxDocument()
-    doc.add_heading("LAPORAN INVESTIGASI INSIDEN OPERASIONAL (INC-2026-1012)", level=1)
+    doc.add_heading("LAPORAN INVESTIGASI INSIDEN OPERASIONAL & CHURN KLIEN (INC-NTI-2026-1012)", level=1)
+
+    doc.add_paragraph("Nomor Dokumen: INC-NTI-2026-1012\n" "Tanggal Terbit: 28 Oktober 2026\n" "Klasifikasi: Internal Confidential\n" "Penyusun: Tim Investigasi Kualitas Produk & Customer Success NTI")
+
+    doc.add_heading("1. Ringkasan Eksekutif", level=2)
     doc.add_paragraph(
-        "Judul Insiden: Lonjakan Kegagalan Transaksi (ERR_GW_TIMEOUT_504) pada Kanal API Partner dan Virtual Account Pasca Migrasi Gateway Bank Nusantara\n"
-        "Tanggal Mulai Kejadian: 12 Oktober 2026 pukul 00:15 WIB\n"
-        "Tanggal Deteksi & Investigasi: 12 Oktober 2026 - 31 Oktober 2026\n"
-        "Tingkat Keparahan: P1 - High Operational Impact\n"
-        "Status: Teridentifikasi & Dalam Mitigasi Bertahap"
+        "Memasuki kuartal IV tahun 2026, khususnya pada periode 12 Oktober 2026 hingga 26 Oktober 2026, "
+        "terjadi anomali lonjakan pembatalan kontrak (churn / cancellation) serta penundaan pembayaran termin implementasi "
+        "hingga 14.8% (ambang batas toleransi normal: <= 3.5%). "
+        "Investigasi menemukan bahwa lonjakan ini terkonsentrasi secara spesifik pada lini produk JustClick HCMS "
+        "di sektor Manufaktur, dengan kode alasan utama ERR_PAYROLL_CUSTOM_DELAY dan lonjakan waktu penyelesaian "
+        "(deployment_days) rata-rata dari 22 hari menjadi 54 hari."
     )
 
-    doc.add_heading("1. Ringkasan Eksekutif (Executive Summary)", level=2)
+    doc.add_heading("2. Kronologi dan Akar Masalah (Root Cause Analysis)", level=2)
     doc.add_paragraph(
-        "Sejak tanggal 12 Oktober 2026, terjadi peningkatan signifikan pada tingkat kegagalan transaksi (failure rate) "
-        "secara keseluruhan dibandingkan bulan September 2026 (naik dari baseline ~3,1% menjadi hampir ~8,9% di bulan Oktober 2026). "
-        "Hasil investigasi tim Payment Operations dan SRE menunjukkan bahwa lonjakan kegagalan ini TIDAK terjadi secara merata di seluruh sistem, "
-        "melainkan terkonsentrasi secara spesifik pada dua kanal: API Partner dan Virtual Account yang diproses melalui gateway Bank Nusantara."
+        "Pada tanggal 12 Oktober 2026 pukul 02:00 WIB, tim engineering merilis update JustClick HCMS versi 2.4.0 "
+        "yang memodifikasi modul kalkulasi pajak PPh 21 TER dan logika roster shift lintas hari (cross-day overtime shift). "
+        "Meskipun update ini berhasil pada klien ritel dan perkebunan, implementasi pada sektor Manufaktur mengalami kendala berat:\n\n"
+        "1. Kompleksitas Roster Lembur Pabrik: Logika baru gagal mengonsolidasikan jam lembur shift 3 (23:00 - 07:00 WIB) "
+        "dengan integrasi mesin fingerprint ZKTeco di pabrik klien, menyebabkan ketidaksesuaian nominal rekapitulasi gaji.\n"
+        "2. Akumulasi Tiket Eskalasi: Sebanyak 18 klien manufaktur tier Mid-Market dan Enterprise menahan pembayaran termin kedua "
+        "dan 7 klien memutuskan membatalkan kontrak (status CHURNED) karena kekhawatiran keterlambatan penggajian karyawan pabrik."
     )
 
-    doc.add_heading("2. Akar Permasalahan (Root Cause Analysis)", level=2)
+    doc.add_heading("3. Data Klien dan Produk yang Terdampak", level=2)
     doc.add_paragraph(
-        "Pada tanggal 11 Oktober 2026 pukul 23:30 WIB, mitra Bank Nusantara melakukan pembaruan infrastruktur Core Gateway v4.2 (rilis BN-GW-4.2). "
-        "Pembaruan tersebut membawa dua perubahan parameter teknis yang berdampak langsung sejak 12 Oktober 2026 dini hari:\n"
-        "1) Penurunan Batas Read-Timeout Sinkron: Konektor gateway menurunkan batas waktu tunggu respons (read timeout) dari 30.000 ms (30 detik) "
-        "menjadi 10.000 ms (10 detik). Ketika proses validasi callback pada kanal API Partner dan pembuatan/verifikasi Virtual Account membutuhkan waktu "
-        "di atas 9,5 detik pada jam sibuk, koneksi langsung diputus dengan kode error ERR_GW_TIMEOUT_504.\n"
-        "2) Pengetatan Rate-Limiter Burst: Endpoint Host-to-Host Bank Nusantara menerapkan pembatasan kuota konkurensi baru pada trafik API Partner "
-        "dan Virtual Account, sehingga antrean request memanjang dan waktu respons (response_time_ms) melonjak drastis dari rata-rata ~420 ms menjadi ~9.800 ms."
+        "- Lini Produk Terdampak: JustClick HCMS (khusus modul multi-shift payroll manufaktur).\n"
+        "- Lini Produk Tidak Terdampak: JustClick eFinance, JustClick CRM, IT Staff Augmentation, dan JustClick SMART "
+        "tetap beroperasi normal dengan tingkat keberhasilan implementasi > 96%.\n"
+        "- Sektor Terdampak: 92% kasus terjadi pada sektor Manufacturing di area Surabaya, Semarang, dan Bandung.\n"
+        "- Kerugian Nilai Kontrak: Estimasi pembatalan dan penundaan pembayaran mencapai Rp 1.840.000.000."
     )
 
-    doc.add_heading("3. Dampak Kuantitatif per Kanal dan Kode Error", level=2)
-    table = doc.add_table(rows=1, cols=5)
-    hdr = table.rows[0].cells
-    hdr[0].text = "Kanal Pembayaran"
-    hdr[1].text = "Bank Terdampak"
-    hdr[2].text = "Kode Error Dominan"
-    hdr[3].text = "Failure Rate Sebelum 12 Okt"
-    hdr[4].text = "Failure Rate Sejak 12 Okt (Bank Nusantara)"
-
-    impact_rows = [
-        ("API Partner", "Bank Nusantara", "ERR_GW_TIMEOUT_504", "~3.1%", "~34.0% (Total kanal ~14-16%)"),
-        ("Virtual Account", "Bank Nusantara", "ERR_GW_TIMEOUT_504", "~3.1%", "~29.0% (Total kanal ~13-15%)"),
-        ("QRIS / Mobile App / Web", "Semua Bank", "ERR_INSUFFICIENT_FUNDS (Normal)", "~3.1%", "~3.1% (Tidak Terdampak)"),
-    ]
-    for r in impact_rows:
-        row_cells = table.add_row().cells
-        for i, val in enumerate(r):
-            row_cells[i].text = val
-
-    doc.add_heading("4. Tindakan Mitigasi dan Rekomendasi Sesuai SOP-OPS-04", level=2)
+    doc.add_heading("4. Tindakan Mitigasi dan Solusi", level=2)
     doc.add_paragraph(
-        "Mengacu pada dokumen SOP_Penanganan_Transaksi_Gagal.pdf (SOP-OPS-04 Bab 4 & Bab 7):\n"
-        "- Tim SRE menaikkan kembali konfigurasi timeout konektor internal dan mengaktifkan mekanisme Inquiry Status sebelum auto-retry maksimal 2 kali dengan idempotency key.\n"
-        "- Mengalihkan sebagian beban trafik (load balancing reroute) Virtual Account dan API Partner dari Bank Nusantara ke Bank Mandiri Jaya dan Bank Sentral Niaga.\n"
-        "- Menjalankan rekonsiliasi settlement H+1 secara ketat untuk memastikan tidak ada transaksi ERR_GW_TIMEOUT_504 yang terdebet ganda."
+        "1. Rilis Patch Perbaikan v2.4.1 pada 26 Oktober 2026 untuk mengembalikan backward-compatibility integrasi fingerprint.\n"
+        "2. Pembentukan Gugus Tugas Asistensi On-Site: Menugaskan 5 Senior ERP Consultant langsung ke lokasi pabrik klien terdampak.\n"
+        "3. Penerapan Kompensasi SLA: Sesuai Kebijakan SLA NTI, klien manufaktur yang mengalami kendala diberikan kompensasi "
+        "berupa perpanjangan lisensi SaaS gratis selama 1 bulan dan asistensi payroll run periode Oktober tanpa biaya tambahan."
     )
     doc.save(str(docx_path))
-    print(f"[OK] Generated DOCX incident report: {docx_path}")
+    print(f"[OK] Generated {docx_path}")
 
-    # 3. Kebijakan_Retry_dan_Rekonsiliasi_Operasional.txt (> 13,500 chars)
-    txt_path = SEED_DOCS_DIR / "Kebijakan_Retry_dan_Rekonsiliasi_Operasional.txt"
-    sections: list[str] = [
-        "DOKUMEN KEBIJAKAN OPERASIONAL: POL-FIN-2026-09\n"
-        "PEDOMAN TEKNIS AUTO-RETRY, REKONSILIASI SETTLEMENT, DAN KOMPENSASI SLA MERCHANT\n"
-        "================================================================================\n"
+    # 3. Kebijakan_Penjualan_SLA_dan_Diskon_NTI.txt
+    txt_path = SEED_DOCS_DIR / "Kebijakan_Penjualan_SLA_dan_Diskon_NTI.txt"
+    txt_content = """\
+DOKUMEN KEBIJAKAN PENJUALAN, PRICING TIER, DAN SERVICE LEVEL AGREEMENT (SLA)
+PT NEURAL TECHNOLOGIES INDONESIA (NTI)
+Nomor Kebijakan: POL-SALES-2026-V3
+Berlaku Efektif: 1 Januari 2026
+
+1. STRUKTUR HARGA LISENSI DAN KONTRAK
+A. Skema Berlangganan Cloud SaaS:
+   - JustClick HCMS: Rp 45.000 - Rp 65.000 per user/bulan (Minimum 25 user).
+   - JustClick eFinance: Rp 35.000 - Rp 55.000 per user/bulan (Minimum 10 user).
+   - JustClick CRM: Rp 25.000 - Rp 40.000 per user/bulan (Minimum 5 user).
+   - JustClick Sales & POS: Rp 30.000 - Rp 45.000 per kasir/bulan.
+   - JustClick SMART: Rp 20.000 - Rp 35.000 per siswa/tahun.
+
+B. Skema Lisensi On-Premise Perpetual (Server Mandiri):
+   - Nilai lisensi setara dengan 28x tarif bulanan SaaS per seat (one-time fee).
+   - Biaya tahunan Software Maintenance & Security Patch: 18% dari nilai lisensi perpetual mulai tahun ke-2.
+
+2. KEBIJAKAN DISKON MULTI-MODUL (BUNDLING INCENTIVE)
+Untuk mendorong sinergi sistem antar divisi, NTI memberlakukan skema diskon resmi berikut:
+- Bundling 2 Modul (Contoh: HCMS + eFinance): Diskon 10% dari total tagihan bulanan.
+- Bundling 3 Modul atau Lebih (ERP Suite Penuh): Diskon 15% dari total tagihan lisensi.
+- Komitmen Kontrak Tahunan (Annual Pre-Paid): Diskon tambahan 15% (dibayarkan 12 bulan di muka).
+- Komitmen Multi-Tahun (3 Tahun): Diskon tetap 20% dan penguncian tarif harga anti-inflasi.
+
+3. STANDAR WAKTU DEPLOYMENT DAN GO-LIVE (SLA DEPLOYMENT)
+A. Tier SMB: Maksimal 14 hari kerja implementasi sejak penandatanganan kontrak.
+B. Tier Mid-Market: Maksimal 30 hari kerja termasuk migrasi data saldo awal dan master karyawan.
+C. Tier Enterprise: 45 - 60 hari kerja mencakup kustomisasi alur approval dan integrasi sistem eksternal.
+
+4. SERVICE LEVEL AGREEMENT (SLA) DUKUNGAN TEKNIS DAN ESKALASI
+- Tingkat Keparahan P1 (Kritis - Operasional Lumpuh / Payroll Gagal Total):
+  * Waktu Respon Awal: Maksimal 30 menit.
+  * Waktu Mitigasi / Workaround: Maksimal 4 jam.
+  * Waktu Resolusi Penuh: Maksimal 24 jam.
+- Tingkat Keparahan P2 (Tinggi - Salah satu fitur modul error namun ada alternatif):
+  * Waktu Respon Awal: Maksimal 2 jam.
+  * Waktu Resolusi: Maksimal 48 jam.
+- Tingkat Keparahan P3 (Normal - Pertanyaan fitur / permintaan panduan penggunaan):
+  * Waktu Respon: 1 hari kerja (08:00 - 18:00 WIB).
+
+5. KEBIJAKAN KOMPENSASI PELANGGARAN SLA
+Jika keterlambatan go-live (deployment_days) melampaui batas toleransi SLA akibat kendala teknis internal NTI:
+- Keterlambatan 7 - 14 hari: Kompensasi berupa free maintenance 1 bulan.
+- Keterlambatan > 14 hari: Kompensasi berupa free subscription lisensi 1 bulan dan asistensi on-site prioritas.
+"""
+    txt_path.write_text(txt_content, encoding="utf-8")
+    print(f"[OK] Generated {txt_path}")
+
+    # 4. pricelist_dan_paket_modul_nti.csv
+    csv_path = SAMPLE_FILES_DIR / "pricelist_dan_paket_modul_nti.csv"
+    pricelist_data = [
+        {"kode_layanan": "JC-HCMS-STD", "kategori": "Software SaaS", "nama_layanan": "JustClick HCMS Standard", "biaya_lisensi_per_user_bln": 45000, "biaya_setup_implementasi": 7500000, "minimum_user": 20, "sla_support": "Standard (P2: 4h)", "deskripsi": "Fitur absensi online, cuti, klaim, dan rekap lembur standar"},
+        {"kode_layanan": "JC-HCMS-ENT", "kategori": "Software SaaS", "nama_layanan": "JustClick HCMS Enterprise", "biaya_lisensi_per_user_bln": 65000, "biaya_setup_implementasi": 25000000, "minimum_user": 50, "sla_support": "Premium (P1: 30m)", "deskripsi": "Payroll PPh 21 TER, multi-shift 24/7 pabrik, KPI, ESS mobile app"},
+        {"kode_layanan": "JC-FIN-STD", "kategori": "Software SaaS", "nama_layanan": "JustClick eFinance Starter", "biaya_lisensi_per_user_bln": 35000, "biaya_setup_implementasi": 5000000, "minimum_user": 5, "sla_support": "Standard (P2: 4h)", "deskripsi": "Buku besar, jurnal umum, laba rugi, dan pencatatan kas kecil"},
+        {"kode_layanan": "JC-FIN-ENT", "kategori": "Software SaaS", "nama_layanan": "JustClick eFinance Enterprise", "biaya_lisensi_per_user_bln": 55000, "biaya_setup_implementasi": 20000000, "minimum_user": 15, "sla_support": "Premium (P1: 30m)", "deskripsi": "Multi-cabang, rekonsiliasi bank otomatis, pajak e-Faktur, AP/AR"},
+        {"kode_layanan": "JC-CRM-PRO", "kategori": "Software SaaS", "nama_layanan": "JustClick CRM Professional", "biaya_lisensi_per_user_bln": 30000, "biaya_setup_implementasi": 5000000, "minimum_user": 5, "sla_support": "Standard (P2: 4h)", "deskripsi": "Sales pipeline, lead scoring, quotation, integrasi WhatsApp"},
+        {"kode_layanan": "JC-POS-RETAIL", "kategori": "Software SaaS", "nama_layanan": "JustClick Sales & POS", "biaya_lisensi_per_user_bln": 35000, "biaya_setup_implementasi": 6000000, "minimum_user": 3, "sla_support": "Standard (P2: 4h)", "deskripsi": "Aplikasi kasir multi-outlet, barcode scanner, stok inventori"},
+        {"kode_layanan": "JC-SMART-EDU", "kategori": "Software SaaS", "nama_layanan": "JustClick SMART Education", "biaya_lisensi_per_user_bln": 25000, "biaya_setup_implementasi": 15000000, "minimum_user": 100, "sla_support": "Dedicated Academic", "deskripsi": "Sistem informasi akademik, SPP online, raport digital siswa"},
+        {"kode_layanan": "NTI-CUST-ERP", "kategori": "Consulting", "nama_layanan": "ERP Custom Implementation", "biaya_lisensi_per_user_bln": 0, "biaya_setup_implementasi": 185000000, "minimum_user": 1, "sla_support": "Dedicated Squad", "deskripsi": "Pengembangan modul kustom proses bisnis unik dan integrasi API"},
+        {"kode_layanan": "NTI-MP-SR-DEV", "kategori": "Manpower Supply", "nama_layanan": "Senior Fullstack / ERP Dev", "biaya_lisensi_per_user_bln": 35000000, "biaya_setup_implementasi": 0, "minimum_user": 1, "sla_support": "Daily Standup", "deskripsi": "Penempatan tenaga ahli pengembang sistem durasi kontrak per bulan"},
+        {"kode_layanan": "NTI-MP-CONS", "kategori": "Manpower Supply", "nama_layanan": "Lead ERP Functional Consultant", "biaya_lisensi_per_user_bln": 45000000, "biaya_setup_implementasi": 0, "minimum_user": 1, "sla_support": "Daily Standup", "deskripsi": "Konsultan analis proses bisnis & perancang alur sistem ERP"},
+        {"kode_layanan": "NTI-TRN-CORP", "kategori": "Training", "nama_layanan": "In-House Corporate Bootcamp", "biaya_lisensi_per_user_bln": 18000000, "biaya_setup_implementasi": 0, "minimum_user": 1, "sla_support": "Workshop 3 Hari", "deskripsi": "Pelatihan intensif adopsi sistem ERP, SQL analytics & best practices"},
     ]
-    base_chapters = [
-        (
-            "BAB 1: KEBIJAKAN IDEMPOTENCY DAN AUTO-RETRY PADA GATEWAY PEMBAYARAN\n"
-            "Setiap transaksi yang masuk melalui kanal API Partner, Virtual Account, Web, Mobile App, maupun QRIS wajib memiliki "
-            "identitas unik `tx_id` dan `idempotency_key`. Apabila transaksi gagal dengan kode `ERR_GW_TIMEOUT_504`, sistem tidak diperbolehkan "
-            "membuat transaksi baru tanpa melakukan pengecekan status (`status_inquiry`) ke bank mitra terlebih dahulu. "
-            "Jeda waktu antar percobaan ulang (retry backoff) ditetapkan sebesar 2 detik pada percobaan pertama dan 5 detik pada percobaan kedua. "
-            "Untuk kegagalan bisnis seperti `ERR_INSUFFICIENT_FUNDS`, `ERR_LIMIT_EXCEEDED`, dan `ERR_INVALID_OTP`, mekanisme auto-retry "
-            "dilarang keras karena melanggar ketentuan kepatuhan jaringan perbankan dan meningkatkan biaya penalti API."
-        ),
-        (
-            "BAB 2: STANDAR WAKTU RESPONS (LATENCY) DAN PEMANTAUAN ANOMALI\n"
-            "Dalam kondisi operasional normal, waktu pemrosesan transaksi (`response_time_ms`) berada pada kisaran 180 ms hingga 700 ms. "
-            "Apabila rata-rata waktu respons pada suatu bank gateway melampaui 2.500 ms, sistem peringatan dini akan mengirimkan notifikasi "
-            "ke kanal komunikasi L2 Payment Operations. Jika waktu respons mendekati 9.000 ms - 10.000 ms disertai lonjakan kode `ERR_GW_TIMEOUT_504`, "
-            "hal tersebut mengindikasikan adanya pemutusan paksa oleh parameter read-timeout di sisi gateway atau antrean koneksi yang jenuh."
-        ),
-        (
-            "BAB 3: PROSEDUR REKONSILIASI DANA DAN PENANGANAN TRANSAKSI SUSPECT\n"
-            "Rekonsiliasi dilakukan secara otomatis setiap hari pada pukul 06:00 WIB untuk seluruh transaksi hari sebelumnya (H+1). "
-            "Transaksi yang tercatat FAILED karena `ERR_GW_TIMEOUT_504` maupun berstatus `PENDING` lebih dari 60 menit dikategorikan sebagai "
-            "transaksi perlu verifikasi mutasi. Apabila dana terbukti masuk ke rekening penampungan (escrow) berdasarkan laporan settlement bank mitra, "
-            "tim Finance Operations wajib melakukan pembaruan status atau pengembalian dana (refund) sesuai instruksi merchant maksimal dalam 48 jam."
-        ),
-        (
-            "BAB 4: KOMPENSASI SLA DAN KOMUNIKASI KEPADA MERCHANT ENTERPRISE\n"
-            "Merchant tier Enterprise yang menggunakan kanal API Partner dan Virtual Account memiliki jaminan tingkat keberhasilan (Success Rate SLA) "
-            "minimal 96,0% di luar kegagalan sisi nasabah (`ERR_INSUFFICIENT_FUNDS`). Apabila terjadi insiden infrastruktur pada salah satu bank gateway "
-            "seperti insiden migrasi Bank Nusantara pada Oktober 2026, Account Manager wajib mengirimkan buletin status resmi beserta rencana "
-            "pengalihan rute (traffic rerouting) kepada seluruh merchant terdampak."
-        ),
-    ]
-    # Expand detailed operational clauses so file is > 13,500 chars
-    for ch_idx in range(1, 14):
-        chapter_text = base_chapters[(ch_idx - 1) % len(base_chapters)]
-        sections.append(
-            f"\n--- BAGIAN LAMPIRAN TEKNIS {ch_idx:02d} ---\n"
-            f"{chapter_text}\n"
-            f"Klausul Operasional Tambahan {ch_idx}.1: Tim operasional wajib mendokumentasikan setiap anomali kanal, kategori merchant, "
-            f"dan distribusi kode error per bulan ke dalam repositori audit internal.\n"
-            f"Klausul Operasional Tambahan {ch_idx}.2: Seluruh perubahan parameter timeout pada bank mitra (termasuk Bank Nusantara, "
-            f"Bank Mandiri Jaya, Bank Sentral Niaga, Bank Prima Digital, dan WalletPay Gateway) harus melewati uji beban (load testing) "
-            f"sebelum diterapkan pada trafik produksi kanal API Partner dan Virtual Account.\n"
-        )
 
-    full_txt = "\n".join(sections)
-    txt_path.write_text(full_txt, encoding="utf-8")
-    print(f"[OK] Generated policy TXT ({len(full_txt):,} chars): {txt_path}")
-
-
-def generate_sample_files() -> None:
-    """Create sample spreadsheets and short documents in sample_files/ for demo uploads."""
-    SAMPLE_FILES_DIR.mkdir(parents=True, exist_ok=True)
-
-    # 1. target_kpi_2026.xlsx (2 sheets)
-    xlsx_path = SAMPLE_FILES_DIR / "target_kpi_2026.xlsx"
-    df_monthly = pd.DataFrame(
-        [
-            {"tx_month": "2026-05", "target_total_tx": 14000, "target_gmv_idr": 12_500_000_000, "target_success_rate_pct": 95.5, "max_failure_rate_pct": 3.5},
-            {"tx_month": "2026-06", "target_total_tx": 14400, "target_gmv_idr": 13_000_000_000, "target_success_rate_pct": 95.5, "max_failure_rate_pct": 3.5},
-            {"tx_month": "2026-07", "target_total_tx": 15500, "target_gmv_idr": 14_200_000_000, "target_success_rate_pct": 95.5, "max_failure_rate_pct": 3.5},
-            {"tx_month": "2026-08", "target_total_tx": 16000, "target_gmv_idr": 14_500_000_000, "target_success_rate_pct": 95.5, "max_failure_rate_pct": 3.5},
-            {"tx_month": "2026-09", "target_total_tx": 16500, "target_gmv_idr": 15_000_000_000, "target_success_rate_pct": 96.0, "max_failure_rate_pct": 3.2},
-            {"tx_month": "2026-10", "target_total_tx": 17500, "target_gmv_idr": 16_000_000_000, "target_success_rate_pct": 96.0, "max_failure_rate_pct": 3.2},
-        ]
-    )
-    df_channel = pd.DataFrame(
-        [
-            {"channel": "QRIS", "target_oct_tx": 5200, "target_success_rate_pct": 96.5, "max_latency_ms": 500},
-            {"channel": "Mobile App", "target_oct_tx": 3900, "target_success_rate_pct": 96.0, "max_latency_ms": 600},
-            {"channel": "Virtual Account", "target_oct_tx": 3200, "target_success_rate_pct": 96.0, "max_latency_ms": 800},
-            {"channel": "API Partner", "target_oct_tx": 3000, "target_success_rate_pct": 96.5, "max_latency_ms": 750},
-            {"channel": "Web", "target_oct_tx": 2200, "target_success_rate_pct": 95.5, "max_latency_ms": 700},
-        ]
-    )
-    with pd.ExcelWriter(xlsx_path, engine="openpyxl") as writer:
-        df_monthly.to_excel(writer, sheet_name="Target_Bulanan", index=False)
-        df_channel.to_excel(writer, sheet_name="Target_Per_Kanal", index=False)
-    print(f"[OK] Generated sample Excel: {xlsx_path}")
-
-    # 2. biaya_mdr_per_kanal.csv
-    csv_path = SAMPLE_FILES_DIR / "biaya_mdr_per_kanal.csv"
     with csv_path.open("w", newline="", encoding="utf-8") as f:
-        w = csv.writer(f)
-        w.writerow(["channel", "mdr_fee_pct", "fixed_fee_idr", "gateway_cost_idr", "settlement_sla"])
-        w.writerow(["QRIS", 0.70, 0, 150, "H+1"])
-        w.writerow(["Mobile App", 1.20, 1000, 350, "H+1"])
-        w.writerow(["Web", 1.50, 1500, 450, "H+1"])
-        w.writerow(["Virtual Account", 0.00, 4000, 1200, "Real-time / H+1"])
-        w.writerow(["API Partner", 0.00, 3500, 1000, "Real-time"])
-    print(f"[OK] Generated sample CSV: {csv_path}")
-
-    # 3. memo_ops_singkat.txt (< 12,000 chars)
-    memo_path = SAMPLE_FILES_DIR / "memo_ops_singkat.txt"
-    memo_path.write_text(
-        "MEMO INTERNAL TIM OPERASIONAL — 25 OKTOBER 2026\n"
-        "Perihal: Evaluasi Kampanye Promo Merchant F&B dan Pemantauan Gateway Oktober\n\n"
-        "1. Program cashback QRIS pada merchant kategori F&B yang dimulai sejak September 2026 berhasil mendorong "
-        "kenaikan volume transaksi F&B sebesar lebih dari 20% dibandingkan pertengahan tahun.\n"
-        "2. Sebaliknya, kategori Travel mengalami penurunan musiman sejak Agustus 2026 setelah berakhirnya periode liburan sekolah.\n"
-        "3. Tim Ops diminta memantau ketat koneksi Bank Nusantara pada kanal API Partner dan Virtual Account karena keluhan timeout "
-        "sejak tanggal 12 Oktober 2026.\n",
-        encoding="utf-8",
-    )
-    print(f"[OK] Generated short TXT memo: {memo_path}")
-
-
-def main() -> None:
-    generate_sqlite_database()
-    generate_seed_documents()
-    generate_sample_files()
+        writer = csv.DictWriter(f, fieldnames=list(pricelist_data[0].keys()))
+        writer.writeheader()
+        writer.writerows(pricelist_data)
+    print(f"[OK] Generated {csv_path}")
 
 
 if __name__ == "__main__":
-    main()
+    generate_sqlite_database()
+    generate_seed_documents()

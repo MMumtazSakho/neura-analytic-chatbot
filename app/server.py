@@ -7,6 +7,7 @@ import logging
 import shutil
 import sqlite3
 from contextlib import asynccontextmanager
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, AsyncIterator
@@ -24,7 +25,9 @@ from .agent import build_agent
 from .config import (
     APP_NAME,
     APP_STATE_DB_PATH,
+    DATA_DIR,
     DEFAULT_USER_ID,
+    KB_FILES_DIR,
     KB_IMAGES_DIR,
     MAX_LLM_CALLS,
     STATIC_DIR,
@@ -32,6 +35,7 @@ from .config import (
     ensure_runtime_dirs,
 )
 from .kb.catalog import (
+    get_catalog_entry,
     list_catalog_entries,
     set_all_catalog_enabled,
     set_catalog_entry_enabled,
@@ -55,6 +59,99 @@ class ChatRequest(BaseModel):
 class KbToggleRequest(BaseModel):
     enabled: bool | None = None
     session_id: str | None = None
+
+
+@dataclass
+class ActiveTurnRun:
+    session_id: str
+    user_text: str
+    attachment_notes: list[str]
+    baseline_timeline: list[dict[str, Any]]
+    frames: list[dict[str, Any]] = field(default_factory=list)
+    cond: asyncio.Condition = field(default_factory=asyncio.Condition)
+    done: bool = False
+    task: asyncio.Task[None] | None = None
+
+    async def publish(self, event_dict: dict[str, Any]) -> None:
+        async with self.cond:
+            self.frames.append(event_dict)
+            self.cond.notify_all()
+
+    async def mark_done(self) -> None:
+        async with self.cond:
+            self.frames.append({"type": "done"})
+            self.done = True
+            self.cond.notify_all()
+
+
+_ACTIVE_RUNS: dict[str, ActiveTurnRun] = {}
+
+
+async def _execute_turn_in_background(
+    runner: Runner,
+    run_state: ActiveTurnRun,
+) -> None:
+    normalizer = EventNormalizer()
+    try:
+        await run_state.publish({"type": "session", "session_id": run_state.session_id})
+
+        full_prompt = run_state.user_text
+        if run_state.attachment_notes:
+            notes_block = "\n".join(run_state.attachment_notes)
+            full_prompt = f"{notes_block}\n\n{run_state.user_text}"
+
+        user_message = types.Content(
+            role="user",
+            parts=[types.Part.from_text(text=full_prompt)],
+        )
+        run_config = RunConfig(
+            streaming_mode=StreamingMode.SSE,
+            max_llm_calls=MAX_LLM_CALLS,
+        )
+
+        async for event in runner.run_async(
+            user_id=DEFAULT_USER_ID,
+            session_id=run_state.session_id,
+            new_message=user_message,
+            run_config=run_config,
+        ):
+            for normalized in normalizer.feed(event):
+                await run_state.publish(normalized)
+
+        for normalized in normalizer.finish():
+            await run_state.publish(normalized)
+    except asyncio.CancelledError:
+        logger.info("Turn run untuk sesi %s dibatalkan.", run_state.session_id)
+        raise
+    except Exception as exc:
+        logger.exception("Eksekusi chat ADK gagal")
+        await run_state.publish(
+            {
+                "type": "error",
+                "message": f"Gagal memproses permintaan: {exc}",
+            }
+        )
+    finally:
+        await run_state.mark_done()
+
+
+async def _stream_turn_frames(run_state: ActiveTurnRun) -> AsyncIterator[str]:
+    cursor = 0
+    while True:
+        async with run_state.cond:
+            while cursor >= len(run_state.frames) and not run_state.done:
+                await run_state.cond.wait()
+            batch = run_state.frames[cursor:]
+            cursor = len(run_state.frames)
+            is_done = run_state.done
+
+        for frame in batch:
+            yield sse(frame)
+            if frame.get("type") == "done":
+                return
+
+        if is_done and cursor >= len(run_state.frames):
+            return
 
 
 def _session_meta_conn() -> sqlite3.Connection:
@@ -242,18 +339,64 @@ async def get_session_detail(session_id: str, request: Request) -> JSONResponse:
     )
     if session is None:
         raise HTTPException(status_code=404, detail="Sesi tidak ditemukan.")
+
+    run_state = _ACTIVE_RUNS.get(session_id)
+    if run_state is not None and not run_state.done:
+        return JSONResponse(
+            {
+                "session_id": session.id,
+                "timeline": run_state.baseline_timeline,
+                "active_run": {
+                    "user_text": run_state.user_text,
+                    "attachments": run_state.attachment_notes,
+                },
+            }
+        )
+
     timeline = reconstruct_session_timeline(session)
     return JSONResponse(
         {
             "session_id": session.id,
             "timeline": timeline,
+            "active_run": None,
         }
+    )
+
+
+@app.get("/api/sessions/{session_id}/stream")
+async def resume_session_stream(session_id: str) -> StreamingResponse:
+    run_state = _ACTIVE_RUNS.get(session_id)
+    if run_state is None:
+        async def _empty_done() -> AsyncIterator[str]:
+            yield sse({"type": "done"})
+
+        return StreamingResponse(
+            _empty_done(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
+
+    return StreamingResponse(
+        _stream_turn_frames(run_state),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
 
 
 @app.delete("/api/sessions/{session_id}")
 async def delete_session(session_id: str, request: Request) -> JSONResponse:
     runner = _get_runner(request)
+    active = _ACTIVE_RUNS.pop(session_id, None)
+    if active and active.task and not active.task.done():
+        active.task.cancel()
     await kernel_pool.shutdown_session(session_id)
     try:
         await runner.session_service.delete_session(
@@ -359,6 +502,43 @@ async def toggle_all_kb_items(payload: KbToggleRequest) -> JSONResponse:
     return JSONResponse({"items": items})
 
 
+@app.get("/api/kb/{doc_id}/file")
+async def serve_kb_file(doc_id: int) -> FileResponse:
+    entry = get_catalog_entry(doc_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Item Knowledge Base tidak ditemukan.")
+
+    filename = str(entry.get("filename") or f"doc_{doc_id}")
+    candidates: list[Path] = []
+    stored_path = entry.get("stored_path")
+    if stored_path:
+        candidates.append(Path(str(stored_path)))
+    candidates.extend(
+        [
+            KB_FILES_DIR / f"doc{doc_id}_{filename}",
+            KB_FILES_DIR / filename,
+            DATA_DIR / "seed_docs" / filename,
+        ]
+    )
+
+    target: Path | None = None
+    for candidate in candidates:
+        if candidate.is_file():
+            target = candidate.resolve()
+            break
+
+    if target is None:
+        raise HTTPException(status_code=404, detail="File dokumen tidak ditemukan di disk.")
+
+    media_type = "application/pdf" if filename.lower().endswith(".pdf") else None
+    return FileResponse(
+        target,
+        media_type=media_type,
+        filename=filename,
+        content_disposition_type="inline",
+    )
+
+
 @app.get("/api/kb/images/{image_name}")
 async def serve_kb_image(image_name: str) -> FileResponse:
     root = KB_IMAGES_DIR.resolve()
@@ -408,52 +588,28 @@ async def chat_stream(payload: ChatRequest, request: Request) -> StreamingRespon
         raise HTTPException(status_code=400, detail="Pesan tidak boleh kosong.")
 
     runner = _get_runner(request)
+    session = await get_or_create_session(runner, payload.session_id)
+    _upsert_session_meta(session.id, user_text)
 
-    async def event_generator() -> AsyncIterator[str]:
-        normalizer = EventNormalizer()
-        try:
-            session = await get_or_create_session(runner, payload.session_id)
-            _upsert_session_meta(session.id, user_text)
-            yield sse({"type": "session", "session_id": session.id})
-
-            full_prompt = user_text
-            if payload.attachment_notes:
-                notes_block = "\n".join(payload.attachment_notes)
-                full_prompt = f"{notes_block}\n\n{user_text}"
-
-            user_message = types.Content(
-                role="user",
-                parts=[types.Part.from_text(text=full_prompt)],
-            )
-            run_config = RunConfig(
-                streaming_mode=StreamingMode.SSE,
-                max_llm_calls=MAX_LLM_CALLS,
-            )
-
-            async for event in runner.run_async(
-                user_id=DEFAULT_USER_ID,
-                session_id=session.id,
-                new_message=user_message,
-                run_config=run_config,
-            ):
-                for normalized in normalizer.feed(event):
-                    yield sse(normalized)
-
-            for normalized in normalizer.finish():
-                yield sse(normalized)
-            yield sse({"type": "done"})
-        except Exception as exc:
-            logger.exception("Eksekusi chat ADK gagal")
-            yield sse(
-                {
-                    "type": "error",
-                    "message": f"Gagal memproses permintaan: {exc}",
-                }
-            )
-            yield sse({"type": "done"})
+    existing = _ACTIVE_RUNS.get(session.id)
+    if existing is not None and not existing.done:
+        # Join existing in-progress run if one is already running for this session
+        run_state = existing
+    else:
+        baseline_timeline = reconstruct_session_timeline(session)
+        run_state = ActiveTurnRun(
+            session_id=session.id,
+            user_text=user_text,
+            attachment_notes=list(payload.attachment_notes or []),
+            baseline_timeline=baseline_timeline,
+        )
+        _ACTIVE_RUNS[session.id] = run_state
+        run_state.task = asyncio.create_task(
+            _execute_turn_in_background(runner, run_state)
+        )
 
     return StreamingResponse(
-        event_generator(),
+        _stream_turn_frames(run_state),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

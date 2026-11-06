@@ -233,6 +233,16 @@ def reconstruct_session_timeline(session: Any) -> list[dict[str, Any]]:
                 )
             continue
 
+        text = text_from_event(ev)
+        if text:
+            timeline.append(
+                {
+                    "kind": "assistant",
+                    "agent": author or "Analyst",
+                    "text": text,
+                }
+            )
+
         for fn_call in event_function_calls(ev):
             tname = getattr(fn_call, "name", None) or "tool"
             if tname not in DISPLAYED_TOOLS:
@@ -254,15 +264,5 @@ def reconstruct_session_timeline(session: Any) -> list[dict[str, Any]]:
             tid = getattr(fn_resp, "id", None)
             if tid and tid in tool_map:
                 tool_map[tid]["output"] = json_safe(getattr(fn_resp, "response", {}) or {})
-
-        text = text_from_event(ev)
-        if text:
-            timeline.append(
-                {
-                    "kind": "assistant",
-                    "agent": author or "Analyst",
-                    "text": text,
-                }
-            )
 
     return timeline

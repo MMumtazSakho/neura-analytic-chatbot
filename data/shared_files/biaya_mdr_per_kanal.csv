@@ -1,6 +1,0 @@
-channel,mdr_fee_pct,fixed_fee_idr,gateway_cost_idr,settlement_sla
-QRIS,0.7,0,150,H+1
-Mobile App,1.2,1000,350,H+1
-Web,1.5,1500,450,H+1
-Virtual Account,0.0,4000,1200,Real-time / H+1
-API Partner,0.0,3500,1000,Real-time

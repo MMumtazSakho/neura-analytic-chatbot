@@ -1,0 +1,44 @@
+DOKUMEN KEBIJAKAN PENJUALAN, PRICING TIER, DAN SERVICE LEVEL AGREEMENT (SLA)
+PT NEURAL TECHNOLOGIES INDONESIA (NTI)
+Nomor Kebijakan: POL-SALES-2026-V3
+Berlaku Efektif: 1 Januari 2026
+
+1. STRUKTUR HARGA LISENSI DAN KONTRAK
+A. Skema Berlangganan Cloud SaaS:
+   - JustClick HCMS: Rp 45.000 - Rp 65.000 per user/bulan (Minimum 25 user).
+   - JustClick eFinance: Rp 35.000 - Rp 55.000 per user/bulan (Minimum 10 user).
+   - JustClick CRM: Rp 25.000 - Rp 40.000 per user/bulan (Minimum 5 user).
+   - JustClick Sales & POS: Rp 30.000 - Rp 45.000 per kasir/bulan.
+   - JustClick SMART: Rp 20.000 - Rp 35.000 per siswa/tahun.
+
+B. Skema Lisensi On-Premise Perpetual (Server Mandiri):
+   - Nilai lisensi setara dengan 28x tarif bulanan SaaS per seat (one-time fee).
+   - Biaya tahunan Software Maintenance & Security Patch: 18% dari nilai lisensi perpetual mulai tahun ke-2.
+
+2. KEBIJAKAN DISKON MULTI-MODUL (BUNDLING INCENTIVE)
+Untuk mendorong sinergi sistem antar divisi, NTI memberlakukan skema diskon resmi berikut:
+- Bundling 2 Modul (Contoh: HCMS + eFinance): Diskon 10% dari total tagihan bulanan.
+- Bundling 3 Modul atau Lebih (ERP Suite Penuh): Diskon 15% dari total tagihan lisensi.
+- Komitmen Kontrak Tahunan (Annual Pre-Paid): Diskon tambahan 15% (dibayarkan 12 bulan di muka).
+- Komitmen Multi-Tahun (3 Tahun): Diskon tetap 20% dan penguncian tarif harga anti-inflasi.
+
+3. STANDAR WAKTU DEPLOYMENT DAN GO-LIVE (SLA DEPLOYMENT)
+A. Tier SMB: Maksimal 14 hari kerja implementasi sejak penandatanganan kontrak.
+B. Tier Mid-Market: Maksimal 30 hari kerja termasuk migrasi data saldo awal dan master karyawan.
+C. Tier Enterprise: 45 - 60 hari kerja mencakup kustomisasi alur approval dan integrasi sistem eksternal.
+
+4. SERVICE LEVEL AGREEMENT (SLA) DUKUNGAN TEKNIS DAN ESKALASI
+- Tingkat Keparahan P1 (Kritis - Operasional Lumpuh / Payroll Gagal Total):
+  * Waktu Respon Awal: Maksimal 30 menit.
+  * Waktu Mitigasi / Workaround: Maksimal 4 jam.
+  * Waktu Resolusi Penuh: Maksimal 24 jam.
+- Tingkat Keparahan P2 (Tinggi - Salah satu fitur modul error namun ada alternatif):
+  * Waktu Respon Awal: Maksimal 2 jam.
+  * Waktu Resolusi: Maksimal 48 jam.
+- Tingkat Keparahan P3 (Normal - Pertanyaan fitur / permintaan panduan penggunaan):
+  * Waktu Respon: 1 hari kerja (08:00 - 18:00 WIB).
+
+5. KEBIJAKAN KOMPENSASI PELANGGARAN SLA
+Jika keterlambatan go-live (deployment_days) melampaui batas toleransi SLA akibat kendala teknis internal NTI:
+- Keterlambatan 7 - 14 hari: Kompensasi berupa free maintenance 1 bulan.
+- Keterlambatan > 14 hari: Kompensasi berupa free subscription lisensi 1 bulan dan asistensi on-site prioritas.

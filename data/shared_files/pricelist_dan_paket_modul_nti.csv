@@ -1,0 +1,12 @@
+kode_layanan,kategori,nama_layanan,biaya_lisensi_per_user_bln,biaya_setup_implementasi,minimum_user,sla_support,deskripsi
+JC-HCMS-STD,Software SaaS,JustClick HCMS Standard,45000,7500000,20,Standard (P2: 4h),"Fitur absensi online, cuti, klaim, dan rekap lembur standar"
+JC-HCMS-ENT,Software SaaS,JustClick HCMS Enterprise,65000,25000000,50,Premium (P1: 30m),"Payroll PPh 21 TER, multi-shift 24/7 pabrik, KPI, ESS mobile app"
+JC-FIN-STD,Software SaaS,JustClick eFinance Starter,35000,5000000,5,Standard (P2: 4h),"Buku besar, jurnal umum, laba rugi, dan pencatatan kas kecil"
+JC-FIN-ENT,Software SaaS,JustClick eFinance Enterprise,55000,20000000,15,Premium (P1: 30m),"Multi-cabang, rekonsiliasi bank otomatis, pajak e-Faktur, AP/AR"
+JC-CRM-PRO,Software SaaS,JustClick CRM Professional,30000,5000000,5,Standard (P2: 4h),"Sales pipeline, lead scoring, quotation, integrasi WhatsApp"
+JC-POS-RETAIL,Software SaaS,JustClick Sales & POS,35000,6000000,3,Standard (P2: 4h),"Aplikasi kasir multi-outlet, barcode scanner, stok inventori"
+JC-SMART-EDU,Software SaaS,JustClick SMART Education,25000,15000000,100,Dedicated Academic,"Sistem informasi akademik, SPP online, raport digital siswa"
+NTI-CUST-ERP,Consulting,ERP Custom Implementation,0,185000000,1,Dedicated Squad,Pengembangan modul kustom proses bisnis unik dan integrasi API
+NTI-MP-SR-DEV,Manpower Supply,Senior Fullstack / ERP Dev,35000000,0,1,Daily Standup,Penempatan tenaga ahli pengembang sistem durasi kontrak per bulan
+NTI-MP-CONS,Manpower Supply,Lead ERP Functional Consultant,45000000,0,1,Daily Standup,Konsultan analis proses bisnis & perancang alur sistem ERP
+NTI-TRN-CORP,Training,In-House Corporate Bootcamp,18000000,0,1,Workshop 3 Hari,"Pelatihan intensif adopsi sistem ERP, SQL analytics & best practices"

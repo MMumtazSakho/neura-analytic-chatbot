@@ -1,4 +1,4 @@
-"""Seed the Knowledge Base with the generated SOP PDF, Incident DOCX, Policy TXT, and shared CSV."""
+"""Seed the Knowledge Base with NTI Product Catalog PDF, Incident DOCX, Sales Policy TXT, and Pricelist CSV."""
 
 from __future__ import annotations
 
@@ -26,20 +26,20 @@ async def seed_all() -> None:
 
     items_to_seed = [
         (
-            SEED_DOCS_DIR / "SOP_Penanganan_Transaksi_Gagal.pdf",
-            "SOP resmi penanganan transaksi gagal (ERR_GW_TIMEOUT_504, ERR_INSUFFICIENT_FUNDS, ERR_INVALID_OTP, dll.), perbedaan prosedur tiap error, diagram alur eskalasi, dan rekonsiliasi H+1.",
+            SEED_DOCS_DIR / "Katalog_Produk_dan_Solusi_NTI.pdf",
+            "Katalog resmi produk & solusi PT Neural Technologies Indonesia (NTI): JustClick ERP (HCMS, eFinance, CRM, POS, SMART), diagram arsitektur modular, skema lisensi SaaS vs On-Premise, dan layanan IT Manpower Supply.",
         ),
         (
-            SEED_DOCS_DIR / "Laporan_Insiden_Oktober_2026.docx",
-            "Laporan investigasi insiden Oktober 2026 (INC-2026-1012): penyebab lonjakan transaksi gagal ERR_GW_TIMEOUT_504 di kanal API Partner & Virtual Account sejak 12 Oktober 2026 akibat migrasi gateway Bank Nusantara.",
+            SEED_DOCS_DIR / "Laporan_Investigasi_Insiden_Implementasi_Q4_2026.docx",
+            "Laporan investigasi insiden Oktober 2026 (INC-NTI-2026-1012): analisis lonjakan churn dan kendala implementasi modul JustClick HCMS di sektor Manufaktur akibat update roster lembur v2.4 per 12 Oktober 2026.",
         ),
         (
-            SEED_DOCS_DIR / "Kebijakan_Retry_dan_Rekonsiliasi_Operasional.txt",
-            "Kebijakan operasional auto-retry idempotency, standar waktu respons (latency), prosedur rekonsiliasi settlement H+1, dan SLA merchant Enterprise.",
+            SEED_DOCS_DIR / "Kebijakan_Penjualan_SLA_dan_Diskon_NTI.txt",
+            "Kebijakan harga lisensi JustClick ERP, diskon bundling multi-modul (10-20%), SLA waktu deployment per tier klien (14-60 hari), level dukungan eskalasi P1/P2/P3, dan kompensasi penalti SLA.",
         ),
         (
-            SAMPLE_FILES_DIR / "biaya_mdr_per_kanal.csv",
-            "Tabel struktur tarif MDR dan biaya tetap gateway per kanal pembayaran (tersedia langsung di workspace shared/biaya_mdr_per_kanal.csv).",
+            SAMPLE_FILES_DIR / "pricelist_dan_paket_modul_nti.csv",
+            "Daftar harga resmi lisensi modul JustClick ERP, biaya setup implementasi, minimum user, dan rate tenaga ahli manpower supply NTI (tersedia di workspace shared/pricelist_dan_paket_modul_nti.csv).",
         ),
     ]
 
